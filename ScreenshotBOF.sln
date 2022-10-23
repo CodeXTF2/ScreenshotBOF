@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30517.126
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ScreenshotBOF", "ScreenshotBOF\ScreenshotBOF.vcxproj", "{C04AB0F3-F7E1-4996-9CFA-D1337332EF29}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		BOF|x64 = BOF|x64
+		BOF|x86 = BOF|x86
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C04AB0F3-F7E1-4996-9CFA-D1337332EF29}.BOF|x64.ActiveCfg = BOF|x64
+		{C04AB0F3-F7E1-4996-9CFA-D1337332EF29}.BOF|x64.Build.0 = BOF|x64
+		{C04AB0F3-F7E1-4996-9CFA-D1337332EF29}.BOF|x86.ActiveCfg = BOF|Win32
+		{C04AB0F3-F7E1-4996-9CFA-D1337332EF29}.BOF|x86.Build.0 = BOF|Win32
+		{C04AB0F3-F7E1-4996-9CFA-D1337332EF29}.Debug|x64.ActiveCfg = Debug|x64
+		{C04AB0F3-F7E1-4996-9CFA-D1337332EF29}.Debug|x64.Build.0 = Debug|x64
+		{C04AB0F3-F7E1-4996-9CFA-D1337332EF29}.Debug|x86.ActiveCfg = Debug|Win32
+		{C04AB0F3-F7E1-4996-9CFA-D1337332EF29}.Debug|x86.Build.0 = Debug|Win32
+		{C04AB0F3-F7E1-4996-9CFA-D1337332EF29}.Release|x64.ActiveCfg = Release|x64
+		{C04AB0F3-F7E1-4996-9CFA-D1337332EF29}.Release|x64.Build.0 = Release|x64
+		{C04AB0F3-F7E1-4996-9CFA-D1337332EF29}.Release|x86.ActiveCfg = Release|Win32
+		{C04AB0F3-F7E1-4996-9CFA-D1337332EF29}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BB40A5A4-261A-4411-8CC0-615E484001A5}
+	EndGlobalSection
+EndGlobal
