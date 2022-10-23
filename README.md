@@ -2,6 +2,11 @@
 
 An alternative screenshot capability for Cobalt Strike that uses WinAPI and does not perform a fork & run. Screenshot saved to disk as a file.
 
+## Self Compilation
+1. git clone the repo
+2. open the solution in Visual Studio
+3. Build project BOF
+
 ## Usage
 1. import the screenshotBOF.cna script into Cobalt Strike
 2. use the command screenshot_bof
