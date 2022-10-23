@@ -38,3 +38,4 @@ Cobalt Strike uses a technique known as fork & run for many of its post-ex capab
 
 ## Credits
 - Made using https://github.com/securifybv/Visual-Studio-BOF-template
+- Save BMP to file from https://stackoverflow.com/a/60667564
