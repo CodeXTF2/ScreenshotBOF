@@ -16,6 +16,4 @@ download screenshot.bmp
 - the filename can be changed in the source code.
 
 ## Why did I make this?
-Cobalt Strike uses a technique known as fork & run for many of its post-ex capabilities, including the screenshot command.  
-While this behaviour provides stability, it is now well known and heavily monitored for. This BOF is meant to provide a more  
-OPSEC safe version of the screenshot capability.
+Cobalt Strike uses a technique known as fork & run for many of its post-ex capabilities, including the screenshot command. While this behaviour provides stability, it is now well known and heavily monitored for. This BOF is meant to provide a more OPSEC safe version of the screenshot capability.
