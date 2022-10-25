@@ -13,8 +13,10 @@ C:\Users\Ethan\Downloads\AVException\CodeX_Arsenal\public\screenshot_BOF\Screens
 C:\Users\Ethan\Downloads\AVException\CodeX_Arsenal\public\screenshot_BOF\ScreenshotBOF\ScreenshotBOF\bofdefs.h(114): warning C4141: 'dllimport': used more than once
 C:\Users\Ethan\Downloads\AVException\CodeX_Arsenal\public\screenshot_BOF\ScreenshotBOF\ScreenshotBOF\bofdefs.h(117): warning C4141: 'dllimport': used more than once
 C:\Users\Ethan\Downloads\AVException\CodeX_Arsenal\public\screenshot_BOF\ScreenshotBOF\ScreenshotBOF\bofdefs.h(120): warning C4141: 'dllimport': used more than once
-C:\Users\Ethan\Downloads\AVException\CodeX_Arsenal\public\screenshot_BOF\ScreenshotBOF\ScreenshotBOF\bofdefs.h(246): warning C4005: 'ZeroMemory': macro redefinition
+C:\Users\Ethan\Downloads\AVException\CodeX_Arsenal\public\screenshot_BOF\ScreenshotBOF\ScreenshotBOF\bofdefs.h(247): warning C4005: 'ZeroMemory': macro redefinition
   C:\Program Files (x86)\Windows Kits\10\Include\10.0.18362.0\um\minwinbase.h(39): note: see previous definition of 'ZeroMemory'
+C:\Users\Ethan\Downloads\AVException\CodeX_Arsenal\public\screenshot_BOF\ScreenshotBOF\ScreenshotBOF\bofdefs.h(270): warning C4005: 'malloc': macro redefinition
+  C:\Users\Ethan\Downloads\AVException\CodeX_Arsenal\public\screenshot_BOF\ScreenshotBOF\ScreenshotBOF\bofdefs.h(245): note: see previous definition of 'malloc'
   C:\Users\Ethan\Downloads\AVException\CodeX_Arsenal\public\screenshot_BOF\ScreenshotBOF\ScreenshotBOF\intermediary\BOF\x86\source.obj
   1 File(s) copied
   enumerating sections...

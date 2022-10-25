@@ -163,6 +163,7 @@ DECLSPEC_IMPORT LPVOID	WINAPI KERNEL32$HeapAlloc(HANDLE hHeap, DWORD dwFlags, SI
 DECLSPEC_IMPORT BOOL	WINAPI KERNEL32$HeapFree(HANDLE, DWORD, PVOID);
 DECLSPEC_IMPORT LPVOID	WINAPI KERNEL32$HeapReAlloc(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem, SIZE_T dwBytes);
 DECLSPEC_IMPORT void* __cdecl  MSVCRT$memcpy(LPVOID, LPVOID, size_t);
+DECLSPEC_IMPORT void* __cdecl  MSVCRT$malloc(size_t);
 DECLSPEC_IMPORT void __cdecl   MSVCRT$memset(void*, int, size_t);
 
 
@@ -266,6 +267,7 @@ DECLSPEC_IMPORT BOOL WINAPI ADVAPI32$GetUserNameW(LPWSTR lpBuffer, LPDWORD pcbBu
 #define HeapAlloc				KERNEL32$HeapAlloc
 #define HeapReAlloc				KERNEL32$HeapReAlloc
 #define memcpy					MSVCRT$memcpy
+#define malloc				MSVCRT$malloc
 #define memset					MSVCRT$memset
 
 
