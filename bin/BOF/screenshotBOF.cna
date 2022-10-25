@@ -11,7 +11,7 @@ alias screenshot_bof {
     # figure out the arch of this session
     $barch  = barch($1);
     # read in the right BOF file
-    $handle = openf(script_resource("screenshotBOF. $+ $barch $+ .obj"));
+    $handle = openf(script_resource("ScreenshotBOF. $+ $barch $+ .obj"));
     $data = readb($handle, -1);
     closef($handle);
     # announce what we're doing
