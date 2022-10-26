@@ -7,7 +7,11 @@ beacon_command_register(
 
 alias screenshot_bof {
     local('$barch $handle $data $args $target_pid');
-    println(@_);
+    if (size(@_) != 2)
+    {
+        berror($1, "Please specify a filename. e.g. screenshot_bof screen.bmp");
+                return;
+    }
     # figure out the arch of this session
     $barch  = barch($1);
     # read in the right BOF file
