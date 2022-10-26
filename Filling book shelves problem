@@ -1,0 +1,28 @@
+from typing import List
+class Solution:
+    def minHeightShelves(self, b: List[List[int]], w: int) -> int:
+        print(f'Books: {b}\nShelf width: {w}')
+        n = len(b)
+        dp = [float('inf')] * (n + 1)
+        dp[0] = 0
+        print(f'initial dp: {dp}')
+        for i in range(n):
+            print()
+            print('-' * 80)
+            print(f'[{i+1} books] to consider: {b[:i+1]}')
+            j = i
+            width = 0
+            h = 0
+            while j >= 0:
+                print(f'place [{j}]-th book: {b[j]}')
+                width += b[j][0]
+                if width > w:
+                    print('The total width is beyond the shelf')
+                    break
+                print(f'The maximum height is updated from [{h}] to [{max(h, b[j][1])}]')
+                h = max(h, b[j][1])
+                
+                print(f'The minimum total height for [{i+1} books] is update from [{dp[i + 1]}] to [{min(dp[i + 1], dp[j] + h)}]')
+                dp[i + 1] = min(dp[i + 1], dp[j] + h)
+                j -= 1
+        return dp[-1]  
