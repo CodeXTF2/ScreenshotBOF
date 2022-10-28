@@ -1,3 +1,95 @@
+import javax.imageio.ImageIO;
+import java.awt.*;
+import javax.swing.JLabel;
+import javax.swing.ImageIcon;
+import java.io.ByteArrayInputStream;
+
+# This function takes in a screenshot and creates a JLabel to display the screenshot
+sub display_image {
+	local('$screenshot $screenshot_bytes $bid $user $computer $client $MAX_IMAGE_WIDTH $MAX_IMAGE_HEIGHT $bias $image $width $height $icon $scaledIcon $component $tab_name');
+	$screenshot = $1;
+	$screenshot_bytes = $screenshot['data'];
+	$bid = $screenshot['bid'];
+	$user = $screenshot['user'];
+	$computer = beacon_info($bid, 'computer');
+
+	$client = getAggressorClient();
+	$MAX_IMAGE_WIDTH = [[[$client getTabManager] getTabbedPane] getWidth];
+	$MAX_IMAGE_HEIGHT = [[[$client getTabManager] getTabbedPane] getHeight];
+
+	$bais = [new ByteArrayInputStream: $screenshot_bytes];
+	$image = [ImageIO read: $bais];
+
+	$width = [$image getWidth];
+	$height = [$image getHeight];
+
+	$icon = [new ImageIcon: $image];
+	if ($width > $MAX_IMAGE_WIDTH) {
+		$width = $MAX_IMAGE_WIDTH;
+	}
+	if ($height > $MAX_IMAGE_HEIGHT) {
+		$height = $MAX_IMAGE_HEIGHT;
+	}
+	$scaledIcon = [new ImageIcon: [$image getScaledInstance: $width, $height, 4]];
+
+	$component = [new JLabel: $scaledIcon];
+	$tab_name = "ScreenshotBOF - $user\@$computer";
+	addTab($tab_name, $component, "...");
+
+}
+
+# Checks the screenshot when it comes in to see if it is a BMP, then if so, renders it in a new tab
+on screenshots {
+	local('$screenshot $data');
+
+	$screenshot = $1;
+	$data = $screenshot['data'];
+
+	# Check the magic header of the data to see if it's a BMP
+	if (charAt($data, 0) eq "B" && charAt($data, 1) eq "M") {
+		display_image($screenshot);
+	}
+}
+
+popup_clear("screenshots");
+popup screenshots {
+	item "&Interact" {
+		openOrActivate($1["bid"]);
+	}
+
+	menu "&Color" {
+		insert_component(colorPanel("accents", $1["id"]));
+	}
+
+	item "&Save" {
+		prompt_file_save($1["id"] . ".jpg", lambda({
+			local('$handle');
+			$handle = openf("> $+ $1");
+			writeb($handle, $data);
+			closef($handle);
+
+			show_message("Screenshot saved.");
+		}, $data => $1["object"]["data"]));
+	}
+
+	separator();
+
+	item "&Remove" {
+		redactobject($1["id"]);
+	}
+
+	item "Render &BMP" {
+        $data = $1["object"]['data'];
+
+	    # Check the magic header of the data to see if it's a BMP
+	    if (charAt($data, 0) eq "B" && charAt($data, 1) eq "M") {
+		    display_image($1["object"]);
+	    } else {
+            show_error("Image is not a Bitmap. It should render in Screenshots tab.");
+        }
+	}
+}
+
 #Register command
 beacon_command_register(
     "screenshot_bof",

