@@ -1,3 +1,166 @@
+import javax.imageio.ImageIO;
+import java.awt.*;
+import javax.swing.JLabel;
+import javax.swing.ImageIcon;
+import java.io.ByteArrayInputStream;
+
+# This function takes in a screenshot and creates a JLabel to display the screenshot
+sub display_image {
+	local('$screenshot $screenshot_bytes $bid $user $computer $client $MAX_IMAGE_WIDTH $MAX_IMAGE_HEIGHT $bias $image $width $height $icon $scaledIcon $component $tab_name');
+	$screenshot = $1;
+	$screenshot_bytes = $screenshot['data'];
+	$bid = $screenshot['bid'];
+	$user = $screenshot['user'];
+	$computer = beacon_info($bid, 'computer');
+
+	$client = getAggressorClient();
+	$MAX_IMAGE_WIDTH = [[[$client getTabManager] getTabbedPane] getWidth];
+	$MAX_IMAGE_HEIGHT = [[[$client getTabManager] getTabbedPane] getHeight];
+
+	$bais = [new ByteArrayInputStream: $screenshot_bytes];
+	$image = [ImageIO read: $bais];
+
+	$width = [$image getWidth];
+	$height = [$image getHeight];
+
+	$icon = [new ImageIcon: $image];
+	if ($width > $MAX_IMAGE_WIDTH) {
+		$width = $MAX_IMAGE_WIDTH;
+	}
+	if ($height > $MAX_IMAGE_HEIGHT) {
+		$height = $MAX_IMAGE_HEIGHT;
+	}
+	$scaledIcon = [new ImageIcon: [$image getScaledInstance: $width, $height, 4]];
+
+	$component = [new JLabel: $scaledIcon];
+	$tab_name = "ScreenshotBOF - $user\@$computer";
+	addTab($tab_name, $component, "...");
+
+}
+
+# This function takes in a screenshot and creates a JLabel to display the screenshot
+sub display_downloaded {
+	local('$screenshot $screenshot_bytes $bid $user $computer $client $MAX_IMAGE_WIDTH $MAX_IMAGE_HEIGHT $bias $image $width $height $icon $scaledIcon $component $tab_name');
+
+	$screenshot_bytes = $1;
+    $file_name = $2;
+
+	$client = getAggressorClient();
+	$MAX_IMAGE_WIDTH = [[[$client getTabManager] getTabbedPane] getWidth];
+	$MAX_IMAGE_HEIGHT = [[[$client getTabManager] getTabbedPane] getHeight];
+
+	$bais = [new ByteArrayInputStream: $screenshot_bytes];
+	$image = [ImageIO read: $bais];
+
+	$width = [$image getWidth];
+	$height = [$image getHeight];
+
+	$icon = [new ImageIcon: $image];
+	if ($width > $MAX_IMAGE_WIDTH) {
+		$width = $MAX_IMAGE_WIDTH;
+	}
+	if ($height > $MAX_IMAGE_HEIGHT) {
+		$height = $MAX_IMAGE_HEIGHT;
+	}
+	$scaledIcon = [new ImageIcon: [$image getScaledInstance: $width, $height, 4]];
+
+	$component = [new JLabel: $scaledIcon];
+	$tab_name = "ScreenshotBOF - $file_name";
+	addTab($tab_name, $component, "...");
+
+}
+
+# Checks the screenshot when it comes in to see if it is a BMP, then if so, renders it in a new tab
+on screenshots {
+	local('$screenshot $data');
+
+	$screenshot = $1;
+	$data = $screenshot['data'];
+
+	# Check the magic header of the data to see if it's a BMP
+	if (charAt($data, 0) eq "B" && charAt($data, 1) eq "M") {
+		display_image($screenshot);
+	}
+}
+
+popup_clear("downloads");
+popup downloads {
+	# do nothing if nothing is selected
+	if (size($1) == 0) {
+		return;
+	}
+
+	item "Interact" {
+		openOrActivate($1[0]["bid"]);
+	}
+
+	menu "&Color" {
+		local('$ids');
+		$ids = map({ return $1["id"]; }, $1);
+		insert_component(colorPanel("accents", $ids));
+	}
+    
+    item "Render &BMP" {
+        local('$download $lpath $name $count');
+   foreach $count => $download ($1) {
+      ($lpath, $name) = values($download, @("lpath", "name"));
+   
+      sync_download($lpath, script_resource("file $+ .$count"), lambda({ 
+         $handle = openf($1);
+         $data = readb($handle, -1);
+         closef($handle);
+         #println(charAt($data, 0));
+         #println(charAt($data, 1));
+         if (charAt($data, 0) eq "B" && charAt($data, 1) eq "M") {
+		    display_downloaded($data, $1);
+	     } else {
+            show_error("File is not a Bitmap image");
+         }
+         deleteFile($1);
+      }, \$name));
+   }
+    }
+}
+
+popup_clear("screenshots");
+popup screenshots {
+	item "&Interact" {
+		openOrActivate($1["bid"]);
+	}
+
+	menu "&Color" {
+		insert_component(colorPanel("accents", $1["id"]));
+	}
+
+	item "&Save" {
+		prompt_file_save($1["id"] . ".jpg", lambda({
+			local('$handle');
+			$handle = openf("> $+ $1");
+			writeb($handle, $data);
+			closef($handle);
+
+			show_message("Screenshot saved.");
+		}, $data => $1["object"]["data"]));
+	}
+
+	separator();
+
+	item "&Remove" {
+		redactobject($1["id"]);
+	}
+
+	item "Render &BMP" {
+        $data = $1["object"]['data'];
+
+	    # Check the magic header of the data to see if it's a BMP
+	    if (charAt($data, 0) eq "B" && charAt($data, 1) eq "M") {
+		    display_image($1["object"]);
+	    } else {
+            show_error("Image is not a Bitmap. It should render in Screenshots tab.");
+        }
+	}
+}
+
 #Register command
 beacon_command_register(
     "screenshot_bof",
@@ -6,23 +169,24 @@ beacon_command_register(
 );
 
 alias screenshot_bof {
-    local('$barch $handle $data $args $target_pid');
-    if (size(@_) != 2)
-    {
-        berror($1, "Please specify a filename. e.g. screenshot_bof screen.bmp");
-                return;
-    }
+    local('$bid $barch $handle $data $args $target_pid');
+    $bid = $1;
     # figure out the arch of this session
-    $barch  = barch($1);
+    $barch  = barch($bid);
     # read in the right BOF file
     $handle = openf(script_resource("ScreenshotBOF. $+ $barch $+ .obj"));
     $data = readb($handle, -1);
     closef($handle);
     
-    $args   = bof_pack($1, "z",$2);
-    
+    # figure out if the profile chooses to chunk the post or not (getOnlyProfile)
+    $profile = data_query("metadata")["c2profile"];
+    $getOnlyProfile = [$profile shouldChunkPosts];
+    println($getOnlyProfile);
+
+    $args   = bof_pack($bid, "i", $getOnlyProfile);
+
     # announce what we're doing
-    btask($1, "Running screenshot BOF by (@codex_tf2)");
+    btask($bid, "Running screenshot BOF by (@codex_tf2)", "T1113");
     # execute it.
-    beacon_inline_execute($1, $data, "go", $args);
+    beacon_inline_execute($bid, $data, "go", $args);
 }
