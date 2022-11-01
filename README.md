@@ -11,7 +11,7 @@ An alternative screenshot capability for Cobalt Strike that uses WinAPI and does
 1. import the screenshotBOF.cna script into Cobalt Strike
 2. use the command screenshot_bof {local filename} {save method 0/1}
 
-Save methods:
+Save methods:  
 0. drop file to disk
 1. download file over beacon (Cobalt Strike only)
 ```
