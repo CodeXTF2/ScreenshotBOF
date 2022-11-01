@@ -47,7 +47,6 @@ DECLSPEC_IMPORT void    BeaconFormatInt(formatp * format, int value);
 #define CALLBACK_FILE		 0x02
 #define CALLBACK_FILE_WRITE  0x08
 #define CALLBACK_FILE_CLOSE  0x09
-#define CALLBACK_SCREENSHOT  0x03
 
 DECLSPEC_IMPORT void   BeaconPrintf(int type, char * fmt, ...);
 DECLSPEC_IMPORT void   BeaconOutput(int type, char * data, int len);

