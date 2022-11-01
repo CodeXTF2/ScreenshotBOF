@@ -7,13 +7,13 @@ An alternative screenshot capability for Cobalt Strike that uses WinAPI and does
 2. open the solution in Visual Studio
 3. Build project BOF
 
-## Usage
-1. import the screenshotBOF.cna script into Cobalt Strike
-2. use the command screenshot_bof {local filename} {save method 0/1}
-
 ## Save methods:  
 0. drop file to disk
 1. download file over beacon (Cobalt Strike only)
+
+## Usage
+1. import the screenshotBOF.cna script into Cobalt Strike
+2. use the command screenshot_bof {local filename} {save method 0/1}
   
 ```
 beacon> screenshot_bof sad.bmp 1
