@@ -26,8 +26,10 @@ beacon> screenshot_bof sad.bmp 1
 [*] started download of sad.bmp
 ```
 
-3. if downloaded over beacon, BMP can be viewed in Cobalt Strike by right clicking the download and clicking "Render BMP" (credit @BinaryFaultline)
+3. if downloaded over beacon, BMP can be viewed in Cobalt Strike by right clicking the download and clicking "Render BMP" (credit @BinaryFaultline)  
+  
 ![image](https://user-images.githubusercontent.com/29991665/199232459-0601e5d8-d534-4f05-bde4-c8acf3bd3c12.png)
+
 
 
 ## Notes
