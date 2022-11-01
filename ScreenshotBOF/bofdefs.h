@@ -231,10 +231,6 @@ DECLSPEC_IMPORT BOOL WINAPI KERNEL32$IsProcessorFeaturePresent(DWORD ProcessorFe
 DECLSPEC_IMPORT BOOL WINAPI ADVAPI32$GetUserNameW(LPWSTR lpBuffer, LPDWORD pcbBuffer);
 
 
-DECLSPEC_IMPORT char* WINAPI MSVCRT$getenv(const char *varname);
-DECLSPEC_IMPORT DWORD WINAPI KERNEL32$GetCurrentProcessId();
-DECLSPEC_IMPORT BOOL  WINAPI KERNEL32$ProcessIdToSessionId(DWORD dwProcessId, DWORD *pSessionId);
-
 
 
 
@@ -361,11 +357,6 @@ DECLSPEC_IMPORT BOOL  WINAPI KERNEL32$ProcessIdToSessionId(DWORD dwProcessId, DW
 #define GetSystemInfo			KERNEL32$GetSystemInfo
 #define GetUserNameW			ADVAPI32$GetUserNameW
 #define IsProcessorFeaturePresent	KERNEL32$IsProcessorFeaturePresent
-
-
-#define getenv                  MSVCRT$getenv
-#define GetCurrentProcessId     KERNEL32$GetCurrentProcessId
-#define ProcessIdToSession      KERNEL32$ProcessIdToSessionId
 
 #else
 
