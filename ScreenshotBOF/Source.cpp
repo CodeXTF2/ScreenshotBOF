@@ -238,7 +238,7 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod)
 
     if (savemethod == 0) {
         BeaconPrintf(0x0, "[*] Saving bitmap to disk with filename %s", lpszFileName);
-        fh = CreateFile(lpszFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+        fh = CreateFileA(lpszFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
             FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 
         if (fh == INVALID_HANDLE_VALUE)

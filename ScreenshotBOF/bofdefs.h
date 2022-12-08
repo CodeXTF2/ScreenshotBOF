@@ -292,7 +292,7 @@ DECLSPEC_IMPORT BOOL WINAPI ADVAPI32$GetUserNameW(LPWSTR lpBuffer, LPDWORD pcbBu
 
 
 /* filesystem */
-#define CreateFileA				KERNEL32$CreateFileA
+//#define CreateFileA				KERNEL32$CreateFileA
 #define SetFilePointer			KERNEL32$SetFilePointer
 #define SetFilePointerEx		KERNEL32$SetFilePointerEx
 #define WriteFile				KERNEL32$WriteFile
