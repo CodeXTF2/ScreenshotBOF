@@ -203,6 +203,7 @@ DECLSPEC_IMPORT void WINAPI		MSVCRT$sprintf(char*, char[], ...);
 DECLSPEC_IMPORT int		__cdecl MSVCRT$_vsnprintf(LPSTR, size_t, LPCSTR, va_list);
 DECLSPEC_IMPORT	size_t	__cdecl MSVCRT$wcslen(LPCWSTR);
 DECLSPEC_IMPORT int __cdecl		MSVCRT$strcmp(const char* _Str1, const char* _Str2);
+DECLSPEC_IMPORT size_t __cdecl		MSVCRT$strlen(const char* str);
 DECLSPEC_IMPORT LPSTR WINAPI	Kernel32$lstrcpyA(LPSTR lpString1, LPCSTR lpString2);
 DECLSPEC_IMPORT LPSTR WINAPI	Kernel32$lstrcatA(LPSTR lpString1, LPCSTR lpString2);
 DECLSPEC_IMPORT LPSTR WINAPI	Kernel32$lstrcpynA(LPSTR lpString1, LPCSTR lpString2, int iMaxLength);
