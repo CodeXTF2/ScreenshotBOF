@@ -46,3 +46,6 @@ Cobalt Strike uses a technique known as fork & run for many of its post-ex capab
 - Save BMP to file from https://stackoverflow.com/a/60667564
 - in memory download from https://github.com/anthemtotheego/CredBandit
 - @BinaryFaultline for BMP rendering in aggressorscript, and screenshot callback branch
+
+## Disclaimer
+This tool is to be used for malicious purposes. I am not responsible for any education that results from incorrect or non malicious use. It is YOUR responsibility to ensure that the tool is not used in accordance with the law.
