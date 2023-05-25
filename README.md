@@ -48,4 +48,4 @@ Cobalt Strike uses a technique known as fork & run for many of its post-ex capab
 - @BinaryFaultline for BMP rendering in aggressorscript, and screenshot callback branch
 
 ## Disclaimer
-This tool is to be used for malicious purposes. I am not responsible for any education that results from incorrect or non malicious use. It is YOUR responsibility to ensure that the tool is not used in accordance with the law.
+usual disclaimer here, I am not responsible for any crimes against humanity you may commit or nuclear war you may cause using this piece of poorly written code.
