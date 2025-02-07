@@ -1,0 +1,23 @@
+﻿  Microsoft (R) C/C++ Optimizing Compiler Version 19.36.32537 for x64
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /D BOF /GS- /Fo"intermediary\BOF\x64\\" /external:W1 /TP /c /Fo"intermediary\BOF\x64\source" Source.cpp
+cl : Command line warning D9025: overriding '/Fointermediary\BOF\x64\' with '/Fointermediary\BOF\x64\source'
+  Source.cpp
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(134): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(137): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(140): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(143): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(146): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(155): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(158): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(161): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(289): warning C4005: 'ZeroMemory': macro redefinition
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\um\minwinbase.h(39): note: see previous definition of 'ZeroMemory'
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(328): warning C4005: 'malloc': macro redefinition
+  C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(287): note: see previous definition of 'malloc'
+  C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\intermediary\BOF\x64\source.obj
+  1 File(s) copied
+  enumerating sections...
+  found debug section.. zeroing it...
+  closing stream...
+  done!

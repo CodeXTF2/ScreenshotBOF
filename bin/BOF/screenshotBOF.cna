@@ -173,9 +173,9 @@ alias screenshot_bof {
     $bid = $1;
     # figure out the arch of this session
     $barch  = barch($bid);
-    if (size(@_) != 3)
+    if (size(@_) != 4)
     {
-        berror($1, "Syntax: screenshot_bof [filename] [save method 0/1] e.g. screenshot_bof file.bmp 1");
+        berror($1, "Syntax: screenshot_bof [filename] [save method 0/1] e.g. screenshot_bof file.bmp 1 1234\nNote: set PID to 0 to capture full screen.");
                 return;
     }
     # read in the right BOF file
@@ -189,7 +189,7 @@ alias screenshot_bof {
     # $getOnlyProfile = [$profile shouldChunkPosts];
     # println($getOnlyProfile);
 
-    $args   = bof_pack($bid, "zi", $2, $3);
+    $args   = bof_pack($bid, "zii", $2, $3, $4);
 
     # announce what we're doing
     btask($bid, "Running screenshot BOF by (@codex_tf2)", "T1113");

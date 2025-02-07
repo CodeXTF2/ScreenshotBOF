@@ -13,7 +13,48 @@ extern "C" {
 
 void go(char* buff, int len);
 
+
+/* 7/2/2025 update*/
+
+DECLSPEC_IMPORT BOOL WINAPI User32$ShowWindow(HWND hWnd, int nCmdShow);
+#define ShowWindow User32$ShowWindow
+
+DECLSPEC_IMPORT BOOL WINAPI User32$PrintWindow(HWND hWnd, HDC hdcBlt, UINT nFlags);
+#define PrintWindow User32$PrintWindow
+
+DECLSPEC_IMPORT BOOL WINAPI User32$SetLayeredWindowAttributes(HWND hwnd, COLORREF crKey, BYTE bAlpha, DWORD dwFlags);
+#define SetLayeredWindowAttributes User32$SetLayeredWindowAttributes
+
+DECLSPEC_IMPORT BOOL WINAPI User32$SetWindowPos(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags);
+#define SetWindowPos User32$SetWindowPos
+
+DECLSPEC_IMPORT BOOL WINAPI User32$GetWindowPlacement(HWND hWnd, WINDOWPLACEMENT* lpwndpl);
+#define GetWindowPlacement User32$GetWindowPlacement
+
+DECLSPEC_IMPORT BOOL WINAPI User32$IsWindowVisible(HWND hWnd);
+#define IsWindowVisible User32$IsWindowVisible
+
+DECLSPEC_IMPORT BOOL WINAPI User32$UpdateWindow(HWND hWnd);
+#define UpdateWindow User32$UpdateWindow
+
+DECLSPEC_IMPORT BOOL WINAPI User32$GetWindowRect(HWND hWnd, LPRECT lpRect);
+#define GetWindowRect User32$GetWindowRect
+
+DECLSPEC_IMPORT LONG WINAPI User32$GetWindowLongA(HWND hWnd, int nIndex);
+#define GetWindowLongA User32$GetWindowLongA
+
+DECLSPEC_IMPORT LONG WINAPI User32$SetWindowLongA(HWND hWnd, int nIndex, LONG dwNewLong);
+#define SetWindowLongA User32$SetWindowLongA
+
+DECLSPEC_IMPORT BOOL WINAPI User32$EnumWindows(WNDENUMPROC lpEnumFunc, LPARAM lParam);
+#define EnumWindows User32$EnumWindows
+
+DECLSPEC_IMPORT DWORD WINAPI User32$GetWindowThreadProcessId(HWND hWnd, LPDWORD lpdwProcessId);
+#define GetWindowThreadProcessId User32$GetWindowThreadProcessId
+
+
 /* resolve some extra funcs for the screenshot */
+
 
     DECLSPEC_IMPORT DWORD WINAPI User32$MessageBoxA(HWND, LPCTSTR, LPCTSTR, UINT);
 #define MessageBoxCustom User32$MessageBoxA
@@ -250,6 +291,22 @@ DECLSPEC_IMPORT BOOL WINAPI ADVAPI32$GetUserNameW(LPWSTR lpBuffer, LPDWORD pcbBu
 
 /* ----------------------------------- DEFINITIONS ------------------------------------------*/
 
+/* 7/2/2025 update */
+
+/* window functions */
+#define ShowWindow               User32$ShowWindow
+#define PrintWindow              User32$PrintWindow
+#define SetLayeredWindowAttributes  User32$SetLayeredWindowAttributes
+#define SetWindowPos             User32$SetWindowPos
+#define GetWindowPlacement       User32$GetWindowPlacement
+#define IsWindowVisible          User32$IsWindowVisible
+#define UpdateWindow             User32$UpdateWindow
+#define GetWindowRect            User32$GetWindowRect
+#define GetWindowLongA           User32$GetWindowLongA
+#define SetWindowLongA           User32$SetWindowLongA
+#define EnumWindows              User32$EnumWindows
+#define GetWindowThreadProcessId User32$GetWindowThreadProcessId
+
 /* COM */
 #define	CLSIDFromString			OLE32$CLSIDFromString
 #define	CoCreateInstance		OLE32$CoCreateInstance
@@ -337,6 +394,7 @@ DECLSPEC_IMPORT BOOL WINAPI ADVAPI32$GetUserNameW(LPWSTR lpBuffer, LPDWORD pcbBu
 #define lstrlenW				KERNEL32$lstrlenW
 #define lstrcpyW				KERNEL32$lstrcpyW
 #define sprintf					MSVCRT$sprintf
+#define strlen                  MSVCRT$strlen
 
 
 /* RPC */

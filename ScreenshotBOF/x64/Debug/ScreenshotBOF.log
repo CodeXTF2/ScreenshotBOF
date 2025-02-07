@@ -1,0 +1,76 @@
+﻿  Source.cpp
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(28,28): error C3861: 'MSVCRT$time': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(28,5): error C3861: 'MSVCRT$srand': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(29,18): error C3861: 'MSVCRT$rand': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(32,31): error C3861: 'MSVCRT$malloc': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(50,18): error C2065: 'CALLBACK_FILE': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(50,5): error C3861: 'BeaconOutput': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(58,44): error C3861: 'MSVCRT$malloc': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(67,30): error C2065: 'CALLBACK_FILE_WRITE': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(67,17): error C3861: 'BeaconOutput': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(71,42): error C3861: 'MSVCRT$malloc': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(80,30): error C2065: 'CALLBACK_FILE_WRITE': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(80,17): error C3861: 'BeaconOutput': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(87,36): error C3861: 'MSVCRT$malloc': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(96,22): error C2065: 'CALLBACK_FILE_WRITE': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(96,9): error C3861: 'BeaconOutput': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(104,18): error C2065: 'CALLBACK_FILE_CLOSE': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(104,5): error C3861: 'BeaconOutput': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(145,67): warning C4365: '=': conversion from 'LONG' to 'DWORD', signed/unsigned mismatch
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(178,22): error C2065: 'CALLBACK_OUTPUT': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(178,9): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(179,14): error C2664: 'HANDLE CreateFileA(LPCSTR,DWORD,DWORD,LPSECURITY_ATTRIBUTES,DWORD,DWORD,HANDLE)': cannot convert argument 1 from 'LPCTSTR' to 'LPCSTR'
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(179,26): message : Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\um\fileapi.h(79,1): message : see declaration of 'CreateFileA'
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(179,14): message : while trying to match the argument list '(LPCTSTR, long, int, int, int, int, int)'
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(187,22): error C2065: 'CALLBACK_OUTPUT': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(187,9): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(188,43): error C2664: 'size_t my_strlen(const char *)': cannot convert argument 1 from 'LPCTSTR' to 'const char *'
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(188,53): message : Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(13,8): message : see declaration of 'my_strlen'
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(188,43): message : while trying to match the argument list '(LPCTSTR)'
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(188,9): error C2660: 'downloadFile': function does not take 3 arguments
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(26,6): message : see declaration of 'downloadFile'
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(188,9): message : while trying to match the argument list '(char *, char *, int)'
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(205,10): warning C4820: '<unnamed-tag>': '4' bytes padding added after data member '<unnamed-tag>::pid'
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(222,22): error C2065: 'CALLBACK_OUTPUT': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(222,9): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(224,49): warning C5039: 'EnumWindows': pointer or reference to potentially throwing function passed to 'extern "C"' function under -EHc. Undefined behavior may occur if this function throws an exception.
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(227,26): error C2065: 'CALLBACK_OUTPUT': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(227,13): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(229,26): error C2065: 'CALLBACK_OUTPUT': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(229,13): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(239,22): error C2065: 'CALLBACK_OUTPUT': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(239,9): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(244,22): error C2065: 'CALLBACK_ERROR': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(244,9): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(248,22): error C2065: 'CALLBACK_OUTPUT': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(248,9): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(259,26): error C2065: 'CALLBACK_OUTPUT': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(259,13): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(269,26): error C2065: 'CALLBACK_ERROR': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(269,13): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(275,26): error C2065: 'CALLBACK_OUTPUT': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(275,13): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(277,26): error C2065: 'CALLBACK_ERROR': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(277,13): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(282,26): error C2065: 'CALLBACK_ERROR': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(282,13): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(289,30): error C2065: 'CALLBACK_OUTPUT': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(289,17): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(293,30): error C2065: 'CALLBACK_ERROR': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(293,17): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(304,26): error C2065: 'CALLBACK_ERROR': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(304,13): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(310,26): error C2065: 'CALLBACK_OUTPUT': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(310,13): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(312,26): error C2065: 'CALLBACK_ERROR': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(312,13): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(317,26): error C2065: 'CALLBACK_ERROR': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(317,13): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(324,26): error C2065: 'CALLBACK_ERROR': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(324,13): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(337,26): error C2065: 'CALLBACK_OUTPUT': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(337,13): error C3861: 'BeaconPrintf': identifier not found
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(341,22): error C2065: 'CALLBACK_OUTPUT': undeclared identifier
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\Source.cpp(341,9): error C3861: 'BeaconPrintf': identifier not found
