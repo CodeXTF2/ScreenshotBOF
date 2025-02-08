@@ -1,0 +1,43 @@
+﻿  Microsoft (R) C/C++ Optimizing Compiler Version 19.36.32537 for x64
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /D BOF /GS- /Fo"intermediary\BOF\x64\\" /external:W1 /TP /c /Fo"intermediary\BOF\x64\source" Source.cpp
+cl : Command line warning D9025: overriding '/Fointermediary\BOF\x64\' with '/Fointermediary\BOF\x64\source'
+  Source.cpp
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(142): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(145): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(148): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(151): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(154): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(163): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(166): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(169): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(303): warning C4005: 'ZeroMemory': macro redefinition
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\um\minwinbase.h(39): note: see previous definition of 'ZeroMemory'
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(353): warning C4005: 'malloc': macro redefinition
+  C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(295): note: see previous definition of 'malloc'
+Source.cpp(292): error C2084: function 'void writeBigEndian32(unsigned char *,unsigned long)' already has a body
+  Source.cpp(250): note: see previous definition of 'writeBigEndian32'
+Source.cpp(302): error C2084: function 'unsigned long crc32(const unsigned char *,size_t)' already has a body
+  Source.cpp(261): note: see previous definition of 'crc32'
+Source.cpp(318): error C2084: function 'unsigned long adler32(const unsigned char *,size_t)' already has a body
+  Source.cpp(278): note: see previous definition of 'adler32'
+Source.cpp(624): error C2065: 'adler32': undeclared identifier
+Source.cpp(624): error C2440: 'initializing': cannot convert from 'unsigned long (__cdecl *)(const unsigned char *,size_t)' to 'unsigned long'
+  Source.cpp(624): note: There is no context in which this conversion is possible
+Source.cpp(670): error C2065: 'writeBigEndian32': undeclared identifier
+Source.cpp(674): error C2065: 'writeBigEndian32': undeclared identifier
+Source.cpp(676): error C2065: 'writeBigEndian32': undeclared identifier
+Source.cpp(683): error C2065: 'crc32': undeclared identifier
+Source.cpp(683): error C2440: 'initializing': cannot convert from 'unsigned long (__cdecl *)(const unsigned char *,size_t)' to 'unsigned long'
+  Source.cpp(683): note: There is no context in which this conversion is possible
+Source.cpp(684): error C2065: 'writeBigEndian32': undeclared identifier
+Source.cpp(688): error C2065: 'writeBigEndian32': undeclared identifier
+Source.cpp(694): error C2065: 'crc32': undeclared identifier
+Source.cpp(694): error C2568: '=': unable to resolve function overload
+  Source.cpp(694): note: could be 'unsigned long crc32(const unsigned char *,size_t)'
+Source.cpp(695): error C2065: 'writeBigEndian32': undeclared identifier
+Source.cpp(700): error C2065: 'writeBigEndian32': undeclared identifier
+Source.cpp(704): error C2065: 'crc32': undeclared identifier
+Source.cpp(704): error C2568: '=': unable to resolve function overload
+  Source.cpp(704): note: could be 'unsigned long crc32(const unsigned char *,size_t)'
+Source.cpp(705): error C2065: 'writeBigEndian32': undeclared identifier

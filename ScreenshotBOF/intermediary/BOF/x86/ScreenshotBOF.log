@@ -1,0 +1,27 @@
+﻿  Microsoft (R) C/C++ Optimizing Compiler Version 19.36.32537 for x86
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Oy- /D BOF /GS- /Fo"intermediary\BOF\x86\\" /external:W1 /TP /analyze- /c /Fo"intermediary\BOF\x86\source" Source.cpp
+cl : Command line warning D9025: overriding '/Fointermediary\BOF\x86\' with '/Fointermediary\BOF\x86\source'
+  Source.cpp
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(142): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(145): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(148): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(151): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(154): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(163): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(166): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(169): warning C4141: 'dllimport': used more than once
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(303): warning C4005: 'ZeroMemory': macro redefinition
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\um\minwinbase.h(39): note: see previous definition of 'ZeroMemory'
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(317): warning C4005: 'GetWindowLongPtrA': macro redefinition
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\um\winuser.h(9862): note: see previous definition of 'GetWindowLongPtrA'
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(318): warning C4005: 'SetWindowLongPtrA': macro redefinition
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\um\winuser.h(9870): note: see previous definition of 'SetWindowLongPtrA'
+C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(353): warning C4005: 'malloc': macro redefinition
+  C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\bofdefs.h(295): note: see previous definition of 'malloc'
+  C:\Users\Admin\Downloads\AVException\Tools\ScreenshotBOF\ScreenshotBOF\intermediary\BOF\x86\source.obj
+  1 File(s) copied
+  enumerating sections...
+  found debug section.. zeroing it...
+  closing stream...
+  done!
