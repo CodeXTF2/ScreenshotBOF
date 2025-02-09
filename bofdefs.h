@@ -1,7 +1,7 @@
 #pragma once
 /* some code and/or ideas are from trustedsec SA Github repo -- thankyou trustedsec! */
 #include <windows.h>
-
+#include <gdiplus.h>
 
 #ifdef BOF
 
@@ -302,8 +302,15 @@ extern "C" DECLSPEC_IMPORT void __cdecl MSVCRT$free(void* _Memory);
 
 #define ZeroMemory(address, size) memset(address, 0, size);
 
+/* GDI+ for JPG stuffs */
+extern "C" DECLSPEC_IMPORT HMODULE WINAPI KERNEL32$LoadLibraryA(LPCSTR lpLibFileName);
+extern "C" DECLSPEC_IMPORT HRESULT WINAPI OLE32$CreateStreamOnHGlobal(HGLOBAL hGlobal, BOOL fDeleteOnRelease, LPSTREAM * ppstm);
 
-/* 7/2/2025 update */
+#define LoadLibraryA              KERNEL32$LoadLibraryA
+#define CreateStreamOnHGlobal     OLE32$CreateStreamOnHGlobal
+
+
+/* 7/2/2025 update - Hotfix for CS 4.9 support */
 extern "C" DECLSPEC_IMPORT HMODULE WINAPI KERNEL32$GetModuleHandleA(LPCSTR lpModuleName);
 extern "C" DECLSPEC_IMPORT FARPROC WINAPI KERNEL32$GetProcAddress(HMODULE hModule, LPCSTR lpProcName);
 DECLSPEC_IMPORT LONG_PTR WINAPI USER32$GetWindowLongPtrA(HWND hWnd, int nIndex);
@@ -313,7 +320,7 @@ DECLSPEC_IMPORT LONG_PTR WINAPI USER32$SetWindowLongPtrA(HWND hWnd, int nIndex, 
 
 /* 7/2/2025 update */
 #define GetModuleHandleA         KERNEL32$GetModuleHandleA
-//#define GetProcAddress           KERNEL32$GetProcAddress
+#define GetProcAddress           KERNEL32$GetProcAddress
 #define GetWindowLongPtrA        USER32$GetWindowLongPtrA
 #define SetWindowLongPtrA        USER32$SetWindowLongPtrA
 
