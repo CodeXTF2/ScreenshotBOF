@@ -7,7 +7,6 @@ An alternative screenshot capability for Cobalt Strike that uses WinAPI and does
 - Moved to mingw
 - Added beacon screenshot callback option
 - Removed BMP renderer (it will be missed)
-- No longer requires Cobalt Strike 4.10
 - Supports capturing of minimized windows
 
 ## Self Compilation
