@@ -28,10 +28,6 @@ def screenshot_bof(
             demon.ConsoleWrite(demon.CONSOLE_ERROR, "Invalid save_method provided")
             return False
 
-    print(f"filename: {filename}")
-    print(f"save_method: {save_method}")
-    print(f"pid: {pid}")
-
     packer.addstr( filename )
     packer.addint( int( save_method ) )
     packer.addint( int( pid ) )
