@@ -748,7 +748,7 @@ void go(char* buff, int len)
         }
         
         BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] GetDC: %p",hScreen);
-        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] CreateCompatibleDC returned: %p",hDc);
+        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] CreateCompatibleDC returned: %p",hDC);
         BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] CreateCompatibleBitmap returned: %p",hBitmap);
 
         HGDIOBJ old_obj = pSelectObject(hDC, hBitmap);
