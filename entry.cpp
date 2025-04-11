@@ -758,7 +758,8 @@ void go(char* buff, int len)
             } else {
                 DWORD flags = 0;
                 if (!pGetHandleInformation(hScreen, &flags)) {
-                    BeaconPrintf(CALLBACK_ERROR, "[DEBUG] hScreen appears invalid (pGetHandleInformation failed)");
+                    DWORD errorCode = GetLastError();
+                    BeaconPrintf(CALLBACK_ERROR, "[DEBUG] hScreen appears invalid (pGetHandleInformation failed) - Error code: %lu",errorCode);
                 } else {
                     BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] hScreen is valid (flags: 0x%lx)", flags);
                 }
@@ -770,7 +771,7 @@ void go(char* buff, int len)
             } else {
                 DWORD flags = 0;
                 if (!pGetHandleInformation(hDC, &flags)) {
-                    BeaconPrintf(CALLBACK_ERROR, "[DEBUG] hDC appears invalid (pGetHandleInformation failed)");
+                    BeaconPrintf(CALLBACK_ERROR, "[DEBUG] hDC appears invalid (pGetHandleInformation failed) - Error code: %lu",errorCode);
                 } else {
                     BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] hDC is valid (flags: 0x%lx)", flags);
                 }
