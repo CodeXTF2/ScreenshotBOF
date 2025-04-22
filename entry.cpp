@@ -704,7 +704,9 @@ void go(char* buff, int len)
 
     if (debug)
         BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] go() called with filename: %s, savemethod: %d, pid: %d, debug: %d", filename, savemethod, pid, debug);
-
+    
+    BOOL dpi = SetProcessDPIAware(); // Set DPI awareness to fix incomplete screenshots
+    
     HBITMAP hBitmap = NULL;
     if (pid != 0) {
         if (debug)
