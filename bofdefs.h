@@ -70,6 +70,9 @@ DECLSPEC_IMPORT DWORD WINAPI User32$GetWindowThreadProcessId(HWND hWnd, LPDWORD 
     DECLSPEC_IMPORT int WINAPI User32$GetSystemMetrics(int nIndex);
 #define GetSystemMetrics User32$GetSystemMetrics
 
+    DECLSPEC_IMPORT BOOL WINAPI User32$SetProcessDPIAware();
+#define SetProcessDPIAware User32$SetProcessDPIAware
+
     DECLSPEC_IMPORT HDC WINAPI User32$GetDC(HWND hWnd);
 #define GetDC User32$GetDC
 
