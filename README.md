@@ -2,12 +2,11 @@
 
 An alternative screenshot capability for Cobalt Strike that uses WinAPI and does not perform a fork & run. Screenshot downloaded in memory.
 
-# Release 2.0
-- JPEG is used in place of BMP
-- Moved to mingw
-- Added beacon screenshot callback option
-- Removed BMP renderer (it will be missed)
+# Features
+- JPEG compression
+- In memory download as screenshot or as file
 - Supports capturing of minimized windows
+- Grayscale, JPEG quality and Downscaling to reduce file size
 
 ## Self Compilation
 1. git clone the repo
@@ -24,10 +23,11 @@ specific PID: capture specific PID (works even when minimized!)
 
 ## Usage
 1. import the screenshotBOF.cna script into Cobalt Strike
-2. use the command screenshot_bof {local filename} {save method 0/1/2} {pid/0}
+2. use the command screenshot_bof {local filename} {save method 0/1/2} {pid/0} {grayscale 0/1} {quality 0-100} {scale 0-100}
+   - running `screenshot_bof` with no arguments will pop a GUI dialog
   
 ```
-beacon> screenshot_bof file.jpg 2 21964
+beacon> screenshot_bof file.jpg 2 21964 0 90 100
 [*] Running screenshot BOF by (@codex_tf2)
 [+] host called home, sent: 12421 bytes
 [+] received output:
