@@ -2,7 +2,8 @@
 beacon_command_register(
     "screenshot_bof",
     "Alternative screenshot capability that does not do fork n run",
-    "Use: screenshot_bof [filename] [save method] [PID] [grayscale(0/1)=0] [quality 0-100=90] [scale%=100]\n- PID 0 captures full screen\n- Save methods: 0 drop to disk, 1 download file, 2 download screenshot\n- Grayscale/quality/scale optional; defaults applied when omitted\n- Scale is percent of original (e.g., 50 = half size)\n\nTake a screenshot inline using a BOF. Screenshot is saved as JPEG on disk or downloaded over beacon."
+    "Use: screenshot_bof [filename] [save method] [PID] [grayscale(0/1)=0] [quality 0-100=90] [scale%=100]\n- Save methods: 0 drop to disk, 1 download file, 2 download screenshot\n- PID 0 captures full screen\n- Grayscale/quality/scale optional; defaults applied when omitted\n- Scale is percent of original (e.g., 50 = half size)\n\nTake a screenshot inline using a BOF. Screenshot is saved as JPEG on disk or downloaded over beacon.",
+    "bof"
 );
 
 sub execute_screenshot {
@@ -18,7 +19,7 @@ sub execute_screenshot {
 
     # read in the right BOF file
     $handle = openf(script_resource("ScreenshotBOF. $+ $barch $+ .obj"));
-    if (isnull($handle)) {
+    if ($handle is $null) {
         berror($bid, "Error: Could not find ScreenshotBOF. $+ $barch $+ .obj in script resource path.");
         return;
     }

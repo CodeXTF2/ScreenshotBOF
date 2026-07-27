@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * Beacon Object Files (BOF)
  * -------------------------
@@ -8,9 +10,6 @@
  */
 
 /* data API */
-#pragma once
-
-#ifdef BOF
 typedef struct {
 	char * original; /* the original buffer [so we can free it] */
 	char * buffer;   /* current pointer into our buffer */
@@ -45,6 +44,10 @@ DECLSPEC_IMPORT void    BeaconFormatInt(formatp * format, int value);
 #define CALLBACK_OUTPUT_OEM  0x1e
 #define CALLBACK_ERROR       0x0d
 #define CALLBACK_OUTPUT_UTF8 0x20
+#define CALLBACK_FILE		 0x02
+#define CALLBACK_FILE_WRITE  0x08
+#define CALLBACK_FILE_CLOSE  0x09
+#define CALLBACK_SCREENSHOT  0x03
 
 DECLSPEC_IMPORT void   BeaconPrintf(int type, char * fmt, ...);
 DECLSPEC_IMPORT void   BeaconOutput(int type, char * data, int len);
@@ -62,4 +65,3 @@ DECLSPEC_IMPORT void   BeaconCleanupProcess(PROCESS_INFORMATION * pInfo);
 
 /* Utility Functions */
 DECLSPEC_IMPORT BOOL   toWideChar(char * src, wchar_t * dst, int max);
-#endif
