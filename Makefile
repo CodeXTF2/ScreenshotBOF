@@ -1,5 +1,5 @@
 BOFNAME := ScreenshotBOF
-COMINCLUDE := -I .common
+COMINCLUDE := -I common
 LIBINCLUDE := 
 CC_x64 := x86_64-w64-mingw32-gcc
 CC_x86 := i686-w64-mingw32-gcc

