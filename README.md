@@ -2,6 +2,8 @@
 
 An alternative screenshot capability for Cobalt Strike that uses WinAPI and does not perform a fork & run. Screenshot downloaded in memory.
 
+Includes the original compiled BOF and [get_screenshot.c](get_screenshot.c), a Beacon Interpreter script that captures and encodes screenshots without compiling a BOF.
+
 # Features
 - JPEG compression
 - In memory download as screenshot or as file
@@ -9,6 +11,8 @@ An alternative screenshot capability for Cobalt Strike that uses WinAPI and does
 - Grayscale, JPEG quality and Downscaling to reduce file size
 
 ## Self Compilation
+These steps build the original BOF from `entry.cpp`; `get_screenshot.c` runs through Beacon Interpreter instead.
+
 1. git clone the repo
 2. run `make`
 
@@ -22,7 +26,9 @@ An alternative screenshot capability for Cobalt Strike that uses WinAPI and does
 specific PID: capture specific PID (works even when minimized!)
 
 ## Usage
-1. import the screenshotBOF.cna script into Cobalt Strike
+### Compiled BOF
+
+1. import the `ScreenshotBOF/screenshotBOF.cna` script into Cobalt Strike
 2. use the command screenshot_bof {local filename} {save method 0/1/2} {pid/0} {grayscale 0/1} {quality 0-100} {scale 0-100}
    - running `screenshot_bof` with no arguments will pop a GUI dialog
   
@@ -37,6 +43,30 @@ Downloading JPEG over beacon as a screenshot with filename file.jpg
 Screenshot saved/downloaded successfully
 ```
 
+### Beacon Interpreter (`get_screenshot.c`)
+
+Load [get_screenshot.c](get_screenshot.c) in [Beacon Interpreter's Script Editor](https://hstechdocs.helpsystems.com/manuals/cobaltstrike/current/userguide/content/topics/post-exploitation_beacon-interpreter.htm); no BOF compilation is needed. The script targets the default 64-bit Interpreter headers. For 32-bit targets, define `_WIN32` before the includes and validate separately.
+
+Use the same arguments and order as the BOF above (`str` filename followed by five `int` values). All arguments are optional; omitted trailing values default to `screenshot.jpg 2 0 0 85 100`. Supply all preceding arguments when overriding a later value.
+
+For example, run `get_screenshot.c` from the Script Editor with these typed argument rows:
+
+|Type|Value|
+| --- | --- |
+|str|file.jpg|
+|int|2|
+|int|21964|
+|int|0|
+|int|90|
+|int|100|
+
+Example output (username and image size vary):
+
+```text
+[*] received screenshot of Screenshot from Admin (26kb)
+[+] received output:
+Returned JPEG through the screenshot callback
+```
 
 ## Notes
 - no evasion is performed, which should be fine since the WinAPIs used are not malicious
